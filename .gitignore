@@ -1,0 +1,29 @@
+# Godot 4 editor data
+.godot/
+
+# Imports and caches
+.import/
+
+# Exported builds
+/export/
+/export.cfg
+/export_presets.cfg
+
+# Mono / C# (only matters if you use C# — safe to keep anyway)
+.mono/
+*.csproj
+*.sln
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Temp / misc
+*.tmp
+*.translation
+
+# Android build folder (if you export Android)
+android/
+
+# User-specific editor settings
+editor_layout.cfg
