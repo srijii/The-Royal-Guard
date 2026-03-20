@@ -1,0 +1,41 @@
+# Godot 4 editor/cache data
+.godot/
+
+# Exported builds
+/export/
+build/
+
+# Android export/build junk
+android/build/
+android/.gradle/
+android/local.properties
+
+# Mono / C#
+.mono/
+*.csproj
+*.sln
+
+# Executables / exports
+*.exe
+*.apk
+*.aab
+*.x86_64
+*.zip
+
+# Logs
+*.log
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# IDE/editor
+.vscode/
+.idea/
+
+# Temp
+*.tmp
+
+IN SEARCH OF THE RING.exe
+IN SEARCH OF THE RING.zip
+android.zip
