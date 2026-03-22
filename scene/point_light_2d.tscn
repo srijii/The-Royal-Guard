@@ -1,38 +1,29 @@
-[gd_scene load_steps=12 format=3 uid="uid://c5o5a2typ10t0"]
+[gd_scene load_steps=11 format=3 uid="uid://c5o5a2typ10t0"]
 
 [ext_resource type="Texture2D" uid="uid://d1pvsba8ascxt" path="res://art/light.png" id="1_70wmk"]
-[ext_resource type="Texture2D" uid="uid://vqkkceky2bhv" path="res://art/Torch Animated.png" id="2_5nkah"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_0ku2y"]
-atlas = ExtResource("2_5nkah")
 region = Rect2(0, 0, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_mwjga"]
-atlas = ExtResource("2_5nkah")
 region = Rect2(64, 0, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_3okv7"]
-atlas = ExtResource("2_5nkah")
 region = Rect2(128, 0, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_lnm0f"]
-atlas = ExtResource("2_5nkah")
 region = Rect2(192, 0, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_kxphl"]
-atlas = ExtResource("2_5nkah")
 region = Rect2(0, 64, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_38uxh"]
-atlas = ExtResource("2_5nkah")
 region = Rect2(64, 64, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_hbfer"]
-atlas = ExtResource("2_5nkah")
 region = Rect2(128, 64, 64, 64)
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_jtxu3"]
-atlas = ExtResource("2_5nkah")
 region = Rect2(192, 64, 64, 64)
 
 [sub_resource type="SpriteFrames" id="SpriteFrames_57s0l"]
@@ -74,4 +65,4 @@ texture_scale = 0.5
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 sprite_frames = SubResource("SpriteFrames_57s0l")
-frame_progress = 0.37521988
+frame_progress = 0.35357568

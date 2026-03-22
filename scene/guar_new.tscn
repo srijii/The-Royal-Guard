@@ -1,0 +1,54 @@
+[gd_scene load_steps=8 format=3 uid="uid://bqbodvk8kv54b"]
+
+[ext_resource type="Texture2D" uid="uid://cr4j3jslmgpvu" path="res://art/Human-Soldier-Red.png" id="1_guard_tex"]
+[ext_resource type="Script" uid="uid://c7wtj83adj4br" path="res://script/interactable.gd" id="2_interactable"]
+
+[sub_resource type="AtlasTexture" id="guard_idle_1"]
+atlas = ExtResource("1_guard_tex")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="guard_idle_2"]
+atlas = ExtResource("1_guard_tex")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="guard_talk_1"]
+atlas = ExtResource("1_guard_tex")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="guard_talk_2"]
+atlas = ExtResource("1_guard_tex")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="guard_frames"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("guard_idle_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("guard_idle_2")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 2.5
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("guard_talk_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("guard_talk_2")
+}],
+"loop": false,
+"name": &"interact",
+"speed": 4.0
+}]
+
+[node name="Guard" type="CharacterBody2D"]
+script = ExtResource("2_interactable")
+interaction_name = "Guard"
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("guard_frames")
+animation = &"idle"
+autoplay = "idle"

@@ -1,0 +1,64 @@
+[gd_scene load_steps=9 format=3 uid="uid://d0kjh70b0m1am"]
+
+[ext_resource type="Texture2D" uid="uid://cp6dcbsuklkoo" path="res://art/krishnadev.jpeg" id="2_cettl"]
+[ext_resource type="Script" uid="uid://c7wtj83adj4br" path="res://script/interactable.gd" id="2_interactable"]
+[ext_resource type="Texture2D" uid="uid://de5eneetd8025" path="res://art/lamiya.jpeg" id="3_26vdv"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_bgh66"]
+atlas = ExtResource("2_cettl")
+region = Rect2(160, 160, 160, 160)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_cettl"]
+atlas = ExtResource("3_26vdv")
+region = Rect2(270, 275, 270, 275)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_45vfh"]
+atlas = ExtResource("3_26vdv")
+region = Rect2(540, 275, 270, 275)
+
+[sub_resource type="SpriteFrames" id="chest_frames"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_bgh66")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 1.5
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_cettl")
+}],
+"loop": true,
+"name": &"int1",
+"speed": 1.0
+}, {
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_45vfh")
+}],
+"loop": false,
+"name": &"interact",
+"speed": 5.0
+}]
+
+[sub_resource type="CircleShape2D" id="collision_shape"]
+radius = 18.0
+
+[node name="Chest" type="CharacterBody2D"]
+script = ExtResource("2_interactable")
+interaction_name = "Chest"
+post_interact_animation = "int1"
+return_to_idle_after_interact = false
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("chest_frames")
+animation = &"int1"
+autoplay = "idle"
+scale = Vector2(0.5, 0.5)
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("collision_shape")

@@ -1,0 +1,67 @@
+[gd_scene load_steps=9 format=3 uid="uid://c1xkjdf73xmc"]
+
+[ext_resource type="Texture2D" uid="uid://4smgi57urss0" path="res://tileset/walls.png" id="1_door_tex"]
+[ext_resource type="Script" uid="uid://doe0ivj7x9yb" path="res://script/interactable.gd" id="2_interactable"]
+
+[sub_resource type="AtlasTexture" id="door_idle_1"]
+atlas = ExtResource("1_door_tex")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="door_idle_2"]
+atlas = ExtResource("1_door_tex")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="door_open_1"]
+atlas = ExtResource("1_door_tex")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="door_open_2"]
+atlas = ExtResource("1_door_tex")
+region = Rect2(96, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="door_frames"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("door_idle_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("door_idle_2")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 2.0
+}, {
+"frames": [{
+"duration": 0.3,
+"texture": SubResource("door_open_1")
+}, {
+"duration": 0.3,
+"texture": SubResource("door_open_2")
+}, {
+"duration": 0.4,
+"texture": SubResource("door_open_2")
+}],
+"loop": false,
+"name": &"interact",
+"speed": 8.0
+}]
+
+[sub_resource type="CircleShape2D" id="collision_shape"]
+radius = 36.0
+
+[node name="Door" type="CharacterBody2D"]
+script = ExtResource("2_interactable")
+interaction_name = "Door"
+idle_animation = "idle"
+interact_animation = "interact"
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("door_frames")
+animation = &"idle"
+autoplay = "idle"
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("collision_shape")

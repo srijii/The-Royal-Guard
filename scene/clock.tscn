@@ -1,0 +1,63 @@
+[gd_scene load_steps=9 format=3 uid="uid://dqlmqq3dqshs"]
+
+[ext_resource type="Texture2D" uid="uid://12h4how4uhe4" path="res://tileset/roof.png" id="1_clock_tex"]
+[ext_resource type="Script" path="res://script/interactable.gd" id="2_interactable"]
+
+[sub_resource type="AtlasTexture" id="clock_idle_1"]
+atlas = ExtResource("1_clock_tex")
+region = Rect2(128, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="clock_idle_2"]
+atlas = ExtResource("1_clock_tex")
+region = Rect2(160, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="clock_check_1"]
+atlas = ExtResource("1_clock_tex")
+region = Rect2(192, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="clock_check_2"]
+atlas = ExtResource("1_clock_tex")
+region = Rect2(224, 0, 32, 32)
+
+[sub_resource type="SpriteFrames" id="clock_frames"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("clock_idle_1")
+}, {
+"duration": 1.0,
+"texture": SubResource("clock_idle_2")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 2.0
+}, {
+"frames": [{
+"duration": 0.5,
+"texture": SubResource("clock_check_1")
+}, {
+"duration": 0.5,
+"texture": SubResource("clock_check_2")
+}, {
+"duration": 0.5,
+"texture": SubResource("clock_check_2")
+}, {
+"duration": 0.5,
+"texture": SubResource("clock_check_1")
+}],
+"loop": false,
+"name": &"interact",
+"speed": 6.0
+}]
+
+[node name="Clock" type="CharacterBody2D"]
+script = ExtResource("2_interactable")
+interaction_name = "Clock"
+idle_animation = "idle"
+interact_animation = "interact"
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("clock_frames")
+animation = &"idle"
+autoplay = "idle"
+scale = Vector2(0.6, 0.6)

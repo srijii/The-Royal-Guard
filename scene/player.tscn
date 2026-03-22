@@ -441,11 +441,13 @@ frame_progress = 0.5906426
 zoom = Vector2(1.5, 1.5)
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+visible = false
 position = Vector2(0, 3.999999)
 scale = Vector2(0.99999976, 0.99999976)
 shape = SubResource("CircleShape2D_ml7e8")
 
 [node name="PointLight2D" type="PointLight2D" parent="."]
 visible = false
-color = Color(1, 0.8745098, 0.60784316, 1)
+color = Color(0.80784315, 0.5529412, 0.20392157, 0.60784316)
 texture = ExtResource("3_fvtld")
+texture_scale = 0.6

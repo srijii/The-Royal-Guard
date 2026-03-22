@@ -1,0 +1,75 @@
+[gd_scene load_steps=11 format=3 uid="uid://c0vfa6v5o1x7x"]
+
+[ext_resource type="Texture2D" uid="uid://bsklaeml27ssc" path="res://art/Torch Animated (1)_01.png" id="1_torch_tex"]
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_torch_00"]
+atlas = ExtResource("1_torch_tex")
+region = Rect2(0, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_torch_01"]
+atlas = ExtResource("1_torch_tex")
+region = Rect2(32, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_torch_02"]
+atlas = ExtResource("1_torch_tex")
+region = Rect2(64, 0, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_torch_03"]
+atlas = ExtResource("1_torch_tex")
+region = Rect2(0, 32, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_torch_04"]
+atlas = ExtResource("1_torch_tex")
+region = Rect2(32, 32, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_torch_05"]
+atlas = ExtResource("1_torch_tex")
+region = Rect2(64, 32, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_torch_06"]
+atlas = ExtResource("1_torch_tex")
+region = Rect2(0, 64, 32, 32)
+
+[sub_resource type="AtlasTexture" id="AtlasTexture_torch_07"]
+atlas = ExtResource("1_torch_tex")
+region = Rect2(32, 64, 32, 32)
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_torch"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_torch_00")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_torch_01")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_torch_02")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_torch_03")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_torch_04")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_torch_05")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_torch_06")
+}, {
+"duration": 1.0,
+"texture": SubResource("AtlasTexture_torch_07")
+}],
+"loop": true,
+"name": &"idle",
+"speed": 6.0
+}]
+
+[node name="Torch" type="Node2D"]
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_torch")
+animation = &"idle"
+autoplay = "idle"
+frame_progress = 0.026748696
