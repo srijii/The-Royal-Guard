@@ -1,0 +1,30 @@
+[gd_scene load_steps=5 format=3 uid="uid://e7yp7e4nwax0"]
+
+[ext_resource type="Script" uid="uid://c7wtj83adj4br" path="res://script/interactable.gd" id="2_interactable"]
+[ext_resource type="Texture2D" uid="uid://dgk7llw2h5a8s" path="res://art/map.png" id="2_us30w"]
+
+[sub_resource type="CircleShape2D" id="collision_shape"]
+radius = 36.0
+
+[sub_resource type="SpriteFrames" id="SpriteFrames_xm2x8"]
+animations = [{
+"frames": [{
+"duration": 1.0,
+"texture": ExtResource("2_us30w")
+}],
+"loop": true,
+"name": &"default",
+"speed": 5.0
+}]
+
+[node name="PalaceMap" type="CharacterBody2D"]
+script = ExtResource("2_interactable")
+interaction_name = "Map"
+
+[node name="Area2D" type="Area2D" parent="."]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D"]
+shape = SubResource("collision_shape")
+
+[node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
+sprite_frames = SubResource("SpriteFrames_xm2x8")
