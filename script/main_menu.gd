@@ -1,12 +1,35 @@
 extends Control
 
 const SAVE_PATH := "user://savegame.json"
+const KEYBINDS_PATH := "user://keybinds.cfg"
+const OPTIONS_PATH := "user://options.cfg"
+
+const ACTION_LABELS := {
+	"ui_up": "Move Up",
+	"ui_down": "Move Down",
+	"ui_left": "Move Left",
+	"ui_right": "Move Right",
+	"hold_map_zoom": "Show Map (Zoom Out)",
+	"attack": "Attack",
+	"sprint": "Sprint",
+	"use_health_potion": "Use Regeneration",
+	"use_strength_potion": "Use Strength Potion",
+	"use_energy_drink": "Use Energy Drink",
+}
 
 @onready var _continue_button: Button = $PanelContainer/MarginContainer/VBoxContainer/ContinueButton
+var _settings_popup: AcceptDialog = null
+var _keybind_buttons: Dictionary = {}
+var _rebind_target_action := ""
+var _rebind_info_label: Label = null
+var _mobile_controls_check: CheckBox = null
 
 # Called when the node enters the scene tree for the new time.
 func _ready():
+	_ensure_default_bind_actions()
+	_load_saved_keybinds()
 	_apply_classic_theme()
+	_build_settings_popup()
 	if _continue_button:
 		_continue_button.disabled = not FileAccess.file_exists(SAVE_PATH)
 
@@ -38,8 +61,12 @@ func _on_continue_pressed():
 		printerr("Failed to load world scene for continue. Error code: ", error)
 
 func _on_settings_pressed():
-	# You can create a settings menu later
-	print("Settings - To be implemented")
+	if _settings_popup == null:
+		return
+	_rebind_target_action = ""
+	_rebind_info_label.text = "Click Rebind, then press any key."
+	_refresh_keybind_button_labels()
+	_settings_popup.popup_centered_ratio(0.6)
 
 func _on_credits_pressed():
 	# Load the credits scene
@@ -152,3 +179,182 @@ func _create_handwritten_font() -> SystemFont:
 		"Comic Sans MS"
 	])
 	return fallback
+
+
+func _build_settings_popup() -> void:
+	_settings_popup = AcceptDialog.new()
+	_settings_popup.title = "Settings"
+	_settings_popup.dialog_text = ""
+	_settings_popup.exclusive = true
+	add_child(_settings_popup)
+
+	var root := VBoxContainer.new()
+	root.custom_minimum_size = Vector2(560, 420)
+	root.add_theme_constant_override("separation", 8)
+	_settings_popup.add_child(root)
+
+	var subtitle := Label.new()
+	subtitle.text = "Controls"
+	subtitle.add_theme_font_size_override("font_size", 18)
+	root.add_child(subtitle)
+
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size = Vector2(540, 300)
+	root.add_child(scroll)
+
+	var list := VBoxContainer.new()
+	list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	list.add_theme_constant_override("separation", 6)
+	scroll.add_child(list)
+
+	for action_name in ACTION_LABELS.keys():
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 8)
+		list.add_child(row)
+
+		var action_label := Label.new()
+		action_label.text = String(ACTION_LABELS[action_name])
+		action_label.custom_minimum_size = Vector2(230, 0)
+		row.add_child(action_label)
+
+		var bind_button := Button.new()
+		bind_button.text = _describe_action_binding(action_name)
+		bind_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		bind_button.pressed.connect(_start_rebind.bind(action_name))
+		row.add_child(bind_button)
+		_keybind_buttons[action_name] = bind_button
+
+	_mobile_controls_check = CheckBox.new()
+	_mobile_controls_check.text = "Enable mobile joystick + touch buttons"
+	_mobile_controls_check.button_pressed = _load_mobile_controls_option()
+	_mobile_controls_check.toggled.connect(_on_mobile_controls_toggled)
+	root.add_child(_mobile_controls_check)
+
+	_rebind_info_label = Label.new()
+	_rebind_info_label.text = "Click Rebind, then press any key."
+	_rebind_info_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	root.add_child(_rebind_info_label)
+
+
+func _start_rebind(action_name: String) -> void:
+	_rebind_target_action = action_name
+	_rebind_info_label.text = "Press a key for %s" % ACTION_LABELS.get(action_name, action_name)
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if _rebind_target_action == "":
+		return
+
+	if event is InputEventKey:
+		var key_event := event as InputEventKey
+		if not key_event.pressed or key_event.echo:
+			return
+		_assign_action_event(_rebind_target_action, key_event)
+		get_viewport().set_input_as_handled()
+
+
+func _assign_action_event(action_name: String, event: InputEventKey) -> void:
+	if not InputMap.has_action(action_name):
+		InputMap.add_action(action_name)
+
+	InputMap.action_erase_events(action_name)
+	var assigned := InputEventKey.new()
+	assigned.keycode = event.keycode
+	assigned.shift_pressed = event.shift_pressed
+	assigned.ctrl_pressed = event.ctrl_pressed
+	assigned.alt_pressed = event.alt_pressed
+	assigned.meta_pressed = event.meta_pressed
+	InputMap.action_add_event(action_name, assigned)
+
+	_save_keybinds()
+	_rebind_target_action = ""
+	_refresh_keybind_button_labels()
+	_rebind_info_label.text = "Saved keybind."
+
+
+func _refresh_keybind_button_labels() -> void:
+	for action_name in _keybind_buttons.keys():
+		var button := _keybind_buttons[action_name] as Button
+		if button:
+			button.text = _describe_action_binding(String(action_name))
+
+
+func _describe_action_binding(action_name: String) -> String:
+	if not InputMap.has_action(action_name):
+		return "Unbound"
+
+	var events := InputMap.action_get_events(action_name)
+	if events.is_empty():
+		return "Unbound"
+
+	var first := events[0]
+	if first is InputEventKey:
+		return (first as InputEventKey).as_text_keycode()
+	return first.as_text()
+
+
+func _ensure_default_bind_actions() -> void:
+	_ensure_action_key("attack", KEY_CTRL)
+	_ensure_action_key("sprint", KEY_SHIFT)
+	_set_action_key("hold_map_zoom", KEY_M)
+	_set_action_key("use_health_potion", KEY_SPACE)
+	_set_action_key("use_strength_potion", KEY_J)
+	_set_action_key("use_energy_drink", KEY_K)
+
+
+func _ensure_action_key(action_name: String, default_keycode: Key) -> void:
+	if not InputMap.has_action(action_name):
+		InputMap.add_action(action_name)
+	if InputMap.action_get_events(action_name).is_empty():
+		var ev := InputEventKey.new()
+		ev.keycode = default_keycode
+		InputMap.action_add_event(action_name, ev)
+
+
+func _set_action_key(action_name: String, keycode: Key) -> void:
+	if not InputMap.has_action(action_name):
+		InputMap.add_action(action_name)
+	InputMap.action_erase_events(action_name)
+	var ev := InputEventKey.new()
+	ev.keycode = keycode
+	InputMap.action_add_event(action_name, ev)
+
+
+func _save_keybinds() -> void:
+	var cfg := ConfigFile.new()
+	for action_name in ACTION_LABELS.keys():
+		cfg.set_value("bindings", action_name, InputMap.action_get_events(action_name))
+	cfg.save(KEYBINDS_PATH)
+
+
+func _load_saved_keybinds() -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(KEYBINDS_PATH) != OK:
+		return
+
+	for action_name in ACTION_LABELS.keys():
+		var events = cfg.get_value("bindings", action_name, null)
+		if events == null:
+			continue
+		if not InputMap.has_action(action_name):
+			InputMap.add_action(action_name)
+		InputMap.action_erase_events(action_name)
+		for ev in events:
+			if ev is InputEvent:
+				InputMap.action_add_event(action_name, ev)
+
+
+func _on_mobile_controls_toggled(enabled: bool) -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(OPTIONS_PATH) != OK:
+		# start fresh options config if file did not exist
+		pass
+	cfg.set_value("controls", "mobile_controls", enabled)
+	cfg.save(OPTIONS_PATH)
+
+
+func _load_mobile_controls_option() -> bool:
+	var cfg := ConfigFile.new()
+	if cfg.load(OPTIONS_PATH) != OK:
+		return true
+	return bool(cfg.get_value("controls", "mobile_controls", true))

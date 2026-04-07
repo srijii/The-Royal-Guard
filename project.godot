@@ -13,7 +13,6 @@ config_version=5
 config/name="Learning"
 run/main_scene="res://scene/main_menu.tscn"
 config/features=PackedStringArray("4.5", "Forward Plus")
-config/icon="res://icon.svg"
 
 [autoload]
 

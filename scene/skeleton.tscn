@@ -544,9 +544,19 @@ size = Vector2(33, 14)
 radius = 9.0
 height = 24.0
 
+[sub_resource type="CapsuleShape2D" id="CapsuleShape2D_body"]
+radius = 8.0
+height = 24.0
+
 [node name="Skeleton" type="CharacterBody2D" groups=["enemy"]]
 scale = Vector2(3, 3)
+collision_layer = 2
+collision_mask = 1
 script = ExtResource("1_fhb2i")
+
+[node name="BodyCollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 3)
+shape = SubResource("CapsuleShape2D_body")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="."]
 position = Vector2(3.75, 0)

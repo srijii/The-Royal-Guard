@@ -2,15 +2,17 @@ extends CharacterBody2D
 
 signal night_started(queen_position: Vector2)
 signal exploration_started
+signal return_briefing_ready
 
 @export var dialogue_world_offset := Vector2(0.0, -40.0)
 @export var teleport_offset := Vector2(140.0, -100.0)
 @export var teleport_pause_seconds := 0.32
 @export var typing_characters_per_second := 95.0
 @export var caption_fade_seconds := 0.18
+@export var return_teleport_delay_seconds := 2.0
 @export var wander_speed := 40.0
 @export var wander_arrive_distance := 14.0
-@export var wander_wait_range := Vector2(0.7, 1.8)
+@export var wander_wait_range := Vector2(0.7, 1.5)
 @export var view_distance := 220.0
 @export var view_angle_degrees := 80.0
 @export var ahead_check_distance := 44.0
@@ -21,7 +23,8 @@ signal exploration_started
 @export var step_away_distance := 42.0
 @export var view_attention_pause_seconds := 0.26
 @export var view_attention_cooldown_seconds := 1.2
-@export var wander_stuck_seconds := 0.6
+@export var wander_stuck_seconds := 1.0
+@export var wander_max_stay_time := 3.0
 @export var wander_progress_epsilon := 4.0
 @export var view_debug_visible := false
 
@@ -61,12 +64,15 @@ var _wander_stuck_time := 0.0
 var _last_progress_sample := Vector2.ZERO
 var _has_progress_sample := false
 var _last_checkpoint_index := -1
+var _time_at_wander_location := 0.0
+var _spawn_position := Vector2.ZERO
 
 
 func _ready() -> void:
 	_sprite = get_node_or_null("AnimatedSprite2D2") as AnimatedSprite2D
 	_player_ref = get_parent().get_node_or_null("player") as Node2D
 	_canvas_modulate = get_parent().get_node_or_null("CanvasModulate") as CanvasModulate
+	_spawn_position = global_position
 
 	if has_node("Camera2D"):
 		$Camera2D.enabled = false
@@ -79,7 +85,7 @@ func _ready() -> void:
 	_create_dialogue_ui()
 	set_process_unhandled_input(true)
 	if _sprite:
-		_sprite.play("idle-s")
+		_sprite.play("idle-n")
 	if _player_ref and _player_ref.has_method("set_controls_enabled"):
 		_player_ref.call("set_controls_enabled", false)
 
@@ -95,12 +101,26 @@ func _begin_story_if_needed() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	if _wander_enabled and not _return_sequence_started and not _night_started:
-		_process_wander(delta)
-	else:
-		velocity = Vector2.ZERO
-		move_and_slide()
-		_set_princess_animation(Vector2.ZERO)
+	var stuck_to_player := false
+	if _player_ref != null:
+		var dist := global_position.distance_to(_player_ref.global_position)
+		if dist < player_personal_space_radius * 0.85:
+			# If overlapping, forcibly move away from player
+			var away := (global_position - _player_ref.global_position).normalized()
+			if away.length() < 0.1:
+				away = Vector2.UP
+			velocity = away * (wander_speed * 1.5)
+			move_and_slide()
+			_set_princess_animation(away)
+			stuck_to_player = true
+
+	if not stuck_to_player:
+		if _wander_enabled:
+			_process_wander(delta)
+		else:
+			velocity = Vector2.ZERO
+			move_and_slide()
+			_set_princess_animation(Vector2.ZERO)
 
 	_update_dialogue_position()
 	if view_debug_visible:
@@ -140,10 +160,10 @@ func _run_story_sequence() -> void:
 	if _abort_story_if_skipped():
 		return
 
-	await _say_timed("Player", "What kind of powers?", 1.7)
+	await _say_timed("Player", "What kind of powers?", 2.0)
 	if _abort_story_if_skipped():
 		return
-	await _say_timed("Princess", "I'll show you one of them.", 1.5)
+	await _say_timed("Princess", "I'll show you one of them.", 2.0)
 	if _abort_story_if_skipped():
 		return
 	await _teleport_demo()
@@ -169,13 +189,13 @@ func _run_story_sequence() -> void:
 	await _say_and_wait("Princess", "You should explore the palace and learn the surroundings.")
 	if _abort_story_if_skipped():
 		return
-	await _say_and_wait("Princess", "And bring me a Torch from the storage room.")
+	await _say_and_wait("Princess", "And bring me a Torch and the Map from the storage room.")
 	if _abort_story_if_skipped():
 		return
-	await _say_timed("System", "Quest: Find the Torch", 2.0)
+	await _say_timed("System", "Quest: Find the Torch and map", 2.0)
 	if _abort_story_if_skipped():
 		return
-	await _say_timed("Princess", "Return to me before midnight.", 1.7)
+	await _say_timed("Princess", "Return to me before midnight.", 2.5)
 	if _abort_story_if_skipped():
 		return
 
@@ -204,16 +224,23 @@ func _teleport_demo() -> void:
 	if _skip_tutorial_requested:
 		return
 
-	var origin := global_position
-
-	await _say_timed("Princess", "As you can see...", 1.1)
-	if _skip_tutorial_requested:
-		return
-	await _run_fast_teleport_burst(origin)
-	if _skip_tutorial_requested:
-		return
-
-	await _say_timed("Princess", "I can teleport using the ring.", 1.4)
+	# Teleport behind the character to (10, 75)
+	if _sprite:
+		_sprite.visible = false
+	await get_tree().create_timer(0.08).timeout
+	global_position = Vector2(10, 75)
+	_last_move_dir = Vector2.UP  # Set facing direction for animation system
+	if _sprite:
+		_sprite.visible = true
+		_sprite.play("idle-n")  # Face north
+	
+	await get_tree().create_timer(1.0).timeout
+	
+	# Player should face south (idle)
+	if _player_ref and _player_ref.has_method("set_facing_south"):
+		_player_ref.call("set_facing_south")
+	
+	await _say_timed("Princess", "See, I can teleport using the ring.", 1.4)
 
 
 func _run_fast_teleport_burst(origin: Vector2) -> void:
@@ -253,6 +280,58 @@ func _start_night() -> void:
 	_night_started = true
 
 	emit_signal("night_started", global_position)
+
+
+var _flee_teleport_count := 0  # Track how many times queen has teleported
+
+func flee_from_skeleton() -> void:
+	"""Called when skeleton hits the queen - queen teleports 3 times, then just runs"""
+	_wander_enabled = true
+	_exploration_started = false
+	_flee_teleport_count += 1
+	
+	# Only teleport 3 times max
+	if _flee_teleport_count <= 3:
+		# Teleport away from skeleton
+		if _sprite:
+			_sprite.visible = false
+		await get_tree().create_timer(0.08).timeout
+		
+		# Move to a far location away (vary position each teleport)
+		var teleport_offset := Vector2(400, -150)
+		if _flee_teleport_count == 2:
+			teleport_offset = Vector2(300, 100)
+		elif _flee_teleport_count == 3:
+			teleport_offset = Vector2(-350, 150)
+		
+		global_position = global_position + teleport_offset
+		_last_move_dir = Vector2.UP
+		
+		if _sprite:
+			_sprite.visible = true
+			_sprite.play("idle-n")
+		
+		# Show message through world system
+		var scene = get_tree().get_current_scene()
+		if scene and scene.has_method("_show_system_message"):
+			if _flee_teleport_count < 3:
+				scene.call("_show_system_message", "Princess fled from the skeleton!", 2.0)
+			else:
+				scene.call("_show_system_message", "Princess can't escape anymore! She runs away...", 3.0)
+		
+		# Wait before continuing
+		await get_tree().create_timer(1.0).timeout
+	else:
+		# After 3 teleports, just show running animation
+		var scene = get_tree().get_current_scene()
+		if scene and scene.has_method("_show_system_message"):
+			scene.call("_show_system_message", "The Princess runs away in desperation!", 2.0)
+	
+	# Continue fleeing - walk away
+	if _sprite:
+		_sprite.visible = true
+		_sprite.play("walk-e")
+	_last_move_dir = Vector2.RIGHT
 
 
 func _create_dialogue_ui() -> void:
@@ -570,33 +649,67 @@ func _run_return_with_torch_sequence() -> void:
 	if _player_ref and _player_ref.has_method("set_controls_enabled"):
 		_player_ref.call("set_controls_enabled", false)
 
-	await _say_and_wait("Princess", "Good, you made it back.")
-	await _say_and_wait("Princess", "Now, see the second power of the ring.")
-	await _say_timed("System", "The princess makes the torch float beside you.", 1.6)
+	await _say_and_wait("Princess", "Good, you made it back with the torch and map.")
+	await _say_and_wait("Princess", "Now, let me introduce you to the power of light.")
+	await _say_and_wait("Princess", "This torch will help you see in the dark.")
+	await _say_and_wait("Princess", "Hold the torch close to illuminate your path.")
+	await get_tree().create_timer(return_teleport_delay_seconds).timeout
+	await _teleport_to_spawn_point()
+
+	# Keep existing lamp unlock progression.
 	if _player_ref and _player_ref.has_method("set_lamp_control_unlocked"):
 		_player_ref.call("set_lamp_control_unlocked", true)
 	if _player_ref and _player_ref.has_node("PointLight2D"):
 		var torch_light := _player_ref.get_node("PointLight2D") as PointLight2D
 		if torch_light:
 			torch_light.visible = false
-	await _say_and_wait("Princess", "From now on, you can summon and return the torch using the L button.")
-	await _say_timed("System", "Press L to call the torch.", 1.8)
-	await _say_and_wait("Princess", "It's almost midnight. Stay close.")
-	await _say_timed("System", "The moon eclipse has begun...", 1.8)
-	await _darken_to_night(2.0)
-	await _say_timed("Princess", "The ring has lost its power... Be ready.", 1.9)
+	if _player_ref and _player_ref.has_method("set_controls_enabled"):
+		_player_ref.call("set_controls_enabled", true)
+
+	# Resume normal queen AI while waiting for night countdown.
+	_wander_enabled = true
+
+	emit_signal("return_briefing_ready")
+	_clear_dialogue()
+
+
+func _teleport_to_spawn_point() -> void:
+	if _sprite:
+		_sprite.visible = false
+	await get_tree().create_timer(0.08).timeout
+	global_position = _spawn_position
+	_last_move_dir = Vector2.UP  # Set facing direction for animation system
+	if _sprite:
+		_sprite.visible = true
+		_sprite.play("idle-n")
+	
+	# Show teleport caption
+	var scene = get_tree().get_current_scene()
+	if scene and scene.has_method("_show_system_message"):
+		scene.call("_show_system_message", "Princess teleported to the crown.", 2.0)
+
+
+func begin_night_countdown_complete() -> void:
+	if _night_started:
+		return
 	_start_night()
+	_call_night_dialogue_fx()
+
+
+func _call_night_dialogue_fx() -> void:
+	# No night tutorial captions; only run the darkness transition.
+	await _darken_to_night(10.0)
 
 	if _player_ref and _player_ref.has_method("set_controls_enabled"):
 		_player_ref.call("set_controls_enabled", true)
-	_clear_dialogue()
 
 
 func _darken_to_night(duration: float) -> void:
 	if _canvas_modulate == null:
 		return
 
-	var target_color := _canvas_modulate.color
+	# Force full darkness at night.
+	var target_color := Color(0.0, 0.0, 0.0, 1.0)
 	_canvas_modulate.color = Color(1.0, 1.0, 1.0, 1.0)
 	_canvas_modulate.visible = true
 
@@ -605,6 +718,10 @@ func _darken_to_night(duration: float) -> void:
 	await tween.finished
 
 
+var _idle_facing_time := 0.0
+var _last_facing_dir := Vector2.ZERO
+var _anti_idle_cooldown := 0.0
+
 func _process_wander(delta: float) -> void:
 	if _attention_cooldown_left > 0.0:
 		_attention_cooldown_left = maxf(0.0, _attention_cooldown_left - delta)
@@ -612,17 +729,26 @@ func _process_wander(delta: float) -> void:
 	if _step_away_from_player(delta):
 		return
 
+	if _anti_idle_cooldown > 0.0:
+		_anti_idle_cooldown = maxf(0.0, _anti_idle_cooldown - delta)
+
 	if _wander_wait_time_left > 0.0:
 		_wander_wait_time_left = maxf(0.0, _wander_wait_time_left - delta)
+		_time_at_wander_location += delta
 		velocity = Vector2.ZERO
 		move_and_slide()
 		_set_princess_animation(Vector2.ZERO)
+		# If waiting too long at this spot, force new target
+		if _time_at_wander_location > wander_max_stay_time:
+			_pick_new_wander_target()
+			_time_at_wander_location = 0.0
 		return
 
 	if _player_ref and _is_point_in_view(_player_ref.global_position) and _attention_cooldown_left <= 0.0:
 		# If player is seen in front view, stay attentive for a brief moment.
 		_wander_wait_time_left = maxf(_wander_wait_time_left, view_attention_pause_seconds)
 		_attention_cooldown_left = view_attention_cooldown_seconds
+		_time_at_wander_location += delta
 		velocity = Vector2.ZERO
 		move_and_slide()
 		_set_princess_animation(Vector2.ZERO)
@@ -632,6 +758,7 @@ func _process_wander(delta: float) -> void:
 		_pick_new_wander_target()
 
 	if _handle_stuck_repath(delta):
+		_time_at_wander_location = 0.0
 		return
 
 	var to_target := _wander_target - global_position
@@ -644,15 +771,46 @@ func _process_wander(delta: float) -> void:
 			_wander_has_target = false
 			_wander_has_primary_target = false
 			_wander_wait_time_left = randf_range(wander_wait_range.x, wander_wait_range.y)
+			_time_at_wander_location = 0.0
 			velocity = Vector2.ZERO
 			move_and_slide()
 			_set_princess_animation(Vector2.ZERO)
 			return
 
 	var dir := to_target.normalized()
+
+	# --- Anti-idle facing logic ---
+	if _last_facing_dir == Vector2.ZERO:
+		_last_facing_dir = dir
+		_idle_facing_time = 0.0
+	elif dir.dot(_last_facing_dir) > 0.98:
+		_idle_facing_time += delta
+	else:
+		_idle_facing_time = 0.0
+		_last_facing_dir = dir
+
+	# If facing same direction for too long, turn 180 and walk away
+	if _idle_facing_time > 2.5 and _anti_idle_cooldown <= 0.0:
+		var turn_dir = -_last_facing_dir.normalized()
+		if turn_dir.length() < 0.1:
+			turn_dir = Vector2.LEFT
+		var away_target = global_position + turn_dir * 80.0
+		if _is_point_in_wander_space(away_target):
+			_wander_target = away_target
+			_wander_primary_target = away_target
+			_wander_has_target = true
+			_wander_has_primary_target = true
+		_idle_facing_time = 0.0
+		_anti_idle_cooldown = 3.0
+		velocity = turn_dir * wander_speed
+		move_and_slide()
+		_set_princess_animation(turn_dir)
+		return
+
 	if _is_obstacle_ahead(dir):
 		if not _pick_detour_target(dir, _wander_primary_target):
 			_pick_new_wander_target()
+		_time_at_wander_location += delta
 		velocity = Vector2.ZERO
 		move_and_slide()
 		_set_princess_animation(Vector2.ZERO)
@@ -755,10 +913,10 @@ func _pick_new_wander_target() -> void:
 	if _wander_checkpoints.size() > 0:
 		var checkpoint_idx := randi() % _wander_checkpoints.size()
 		
-		# Avoid immediately returning to the same checkpoint
+		# Avoid immediately returning to the same checkpoint - try harder
 		if _wander_checkpoints.size() > 1:
 			var attempts := 0
-			while checkpoint_idx == _last_checkpoint_index and attempts < 5:
+			while checkpoint_idx == _last_checkpoint_index and attempts < 10:
 				checkpoint_idx = randi() % _wander_checkpoints.size()
 				attempts += 1
 		
@@ -767,6 +925,7 @@ func _pick_new_wander_target() -> void:
 		_wander_primary_target = _wander_target
 		_wander_has_target = true
 		_wander_has_primary_target = true
+		_time_at_wander_location = 0.0
 		return
 
 	if _wander_polygon.size() >= 3:
@@ -780,6 +939,7 @@ func _pick_new_wander_target() -> void:
 				_wander_primary_target = p
 				_wander_has_target = true
 				_wander_has_primary_target = true
+				_time_at_wander_location = 0.0
 				return
 
 	_wander_target = Vector2(
@@ -789,6 +949,7 @@ func _pick_new_wander_target() -> void:
 	_wander_primary_target = _wander_target
 	_wander_has_target = true
 	_wander_has_primary_target = true
+	_time_at_wander_location = 0.0
 
 
 func _is_obstacle_ahead(dir: Vector2) -> bool:
@@ -902,8 +1063,10 @@ func _set_princess_animation(move_dir: Vector2) -> void:
 	var sample := move_dir
 	if sample == Vector2.ZERO:
 		sample = _last_move_dir
+		if sample == Vector2.ZERO:
+			sample = Vector2.UP  # Default to north if no last direction
 
-	var anim := "idle-s"
+	var anim := ""
 	if move_dir == Vector2.ZERO:
 		anim = _get_idle_anim(sample)
 	else:
@@ -971,6 +1134,15 @@ func _draw() -> void:
 	points.append(Vector2.ZERO)
 
 	draw_colored_polygon(points, color)
+
+
+func set_defense_wander_mode(enabled := true) -> void:
+	_wander_enabled = enabled
+	if enabled:
+		# Force a fresh target pick so movement starts immediately.
+		_wander_has_target = false
+		_wander_has_primary_target = false
+		_wander_wait_time_left = 0.0
 
 
 # Kept for compatibility with world.gd integration points.
