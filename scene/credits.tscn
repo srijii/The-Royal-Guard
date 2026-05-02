@@ -1,0 +1,161 @@
+[gd_scene load_steps=7 format=3 uid="uid://caf8mdx7t5yh8"]
+
+[ext_resource type="Script" path="res://script/credits.gd" id="1_3kx8l"]
+[ext_resource type="Texture2D" path="res://art/srijith.jpeg" id="2_rc3f1"]
+[ext_resource type="Texture2D" path="res://art/vidhath.jpeg" id="3_wq5l0"]
+[ext_resource type="Texture2D" path="res://art/krishnadev.jpeg" id="4_1am5q"]
+[ext_resource type="Texture2D" path="res://art/lamiya.jpeg" id="5_8p3k8"]
+
+[sub_resource type="LabelSettings" id="LabelSettings_title"]
+font_size = 36
+font_color = Color(1, 0.84, 0, 1)
+
+[sub_resource type="LabelSettings" id="LabelSettings_heading"]
+font_size = 24
+font_color = Color(0.95, 0.95, 0.95, 1)
+
+[node name="Credits" type="Control"]
+layout_mode = 3
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+script = ExtResource("1_3kx8l")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_left = 0.0
+anchors_top = 0.0
+anchors_right = 1.0
+anchors_bottom = 1.0
+color = Color(0.09, 0.06, 0.14, 1)
+
+[node name="UICamera" type="Camera2D" parent="."]
+enabled = true
+
+[node name="PanelContainer" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_left = 0.5
+anchors_top = 0.5
+anchors_right = 0.5
+anchors_bottom = 0.5
+offset_left = -520.0
+offset_top = -300.0
+offset_right = 520.0
+offset_bottom = 300.0
+
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 24
+
+[node name="Content" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 14
+
+[node name="Title" type="Label" parent="PanelContainer/MarginContainer/Content"]
+layout_mode = 2
+text = "CREDITS"
+label_settings = SubResource("LabelSettings_title")
+horizontal_alignment = 1
+
+[node name="GameDescription" type="Label" parent="PanelContainer/MarginContainer/Content"]
+layout_mode = 2
+text = "This game was made as a 3rd year college project.\nDesigned and developed by our team with a focus on atmosphere, gameplay, and collaboration."
+autowrap_mode = 3
+horizontal_alignment = 1
+
+[node name="CreatorTitle" type="Label" parent="PanelContainer/MarginContainer/Content"]
+layout_mode = 2
+text = "Creators"
+label_settings = SubResource("LabelSettings_heading")
+horizontal_alignment = 1
+
+[node name="CreatorCenter" type="CenterContainer" parent="PanelContainer/MarginContainer/Content"]
+layout_mode = 2
+
+[node name="CreatorRow" type="HBoxContainer" parent="PanelContainer/MarginContainer/Content/CreatorCenter"]
+layout_mode = 2
+theme_override_constants/separation = 28
+
+[node name="Card1" type="VBoxContainer" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 230)
+
+[node name="Photo" type="TextureRect" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow/Card1"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 190)
+texture = ExtResource("2_rc3f1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow/Card1"]
+layout_mode = 2
+text = "Srijith"
+horizontal_alignment = 1
+
+[node name="Card2" type="VBoxContainer" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 230)
+
+[node name="Photo" type="TextureRect" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow/Card2"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 190)
+texture = ExtResource("3_wq5l0")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow/Card2"]
+layout_mode = 2
+text = "Vidhath N Shetty"
+horizontal_alignment = 1
+
+[node name="Card3" type="VBoxContainer" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 230)
+
+[node name="Photo" type="TextureRect" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow/Card3"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 190)
+texture = ExtResource("4_1am5q")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow/Card3"]
+layout_mode = 2
+text = "Krishnadev"
+horizontal_alignment = 1
+
+[node name="Card4" type="VBoxContainer" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 230)
+
+[node name="Photo" type="TextureRect" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow/Card4"]
+layout_mode = 2
+custom_minimum_size = Vector2(200, 190)
+texture = ExtResource("5_8p3k8")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Name" type="Label" parent="PanelContainer/MarginContainer/Content/CreatorCenter/CreatorRow/Card4"]
+layout_mode = 2
+text = "Lamiya Rasheed"
+horizontal_alignment = 1
+
+[node name="Footer" type="HBoxContainer" parent="PanelContainer/MarginContainer/Content"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 20
+
+[node name="BackButton" type="Button" parent="PanelContainer/MarginContainer/Content/Footer"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 42)
+text = "Back to Menu"
+
+[node name="FooterLabel" type="Label" parent="PanelContainer/MarginContainer/Content/Footer"]
+layout_mode = 2
+text = "3rd Year College Project"
+
+[connection signal="pressed" from="PanelContainer/MarginContainer/Content/Footer/BackButton" to="." method="_on_back_pressed"]
