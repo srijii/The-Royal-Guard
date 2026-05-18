@@ -1,29 +1,41 @@
-# Godot 4 editor data
+# Godot 4 editor/cache data
 .godot/
-
-# Imports and caches
-.import/
 
 # Exported builds
 /export/
-/export.cfg
-/export_presets.cfg
+build/
 
-# Mono / C# (only matters if you use C# — safe to keep anyway)
+# Android export/build junk
+android/build/
+android/.gradle/
+android/local.properties
+
+# Mono / C#
 .mono/
 *.csproj
 *.sln
+
+# Executables / exports
+*.exe
+*.apk
+*.aab
+*.x86_64
+*.zip
+
+# Logs
+*.log
 
 # OS junk
 .DS_Store
 Thumbs.db
 
-# Temp / misc
+# IDE/editor
+.vscode/
+.idea/
+
+# Temp
 *.tmp
-*.translation
 
-# Android build folder (if you export Android)
-android/
-
-# User-specific editor settings
-editor_layout.cfg
+IN SEARCH OF THE RING.exe
+IN SEARCH OF THE RING.zip
+android.zip
