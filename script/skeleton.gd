@@ -7,21 +7,21 @@ func _is_player_target(body: Node) -> bool:
 
 signal ring_stolen
 
-var health = 300
+var health = 99999
 var current_health = health
 @onready var healthBar = $healthBar
 @onready var wander_controller = $WanderController
-@export var auto_regen_below_percent := 50.0
-@export var auto_regen_per_second := 22.0
-@export var move_speed := 95.0
-@export var attack_range := 38.0
-@export var attack_cooldown := 1.0
-@export var attack_throw_force := 700.0
-@export var attack_throw_duration := 0.8
-@export var wander_target_reached_distance := 10.0
-@export var chase_probe_distance := 34.0
-@export var chase_detour_scan_rays := 9
-@export var chase_detour_scan_angle_degrees := 120.0
+@export var auto_regen_below_percent := 40.0
+@export var auto_regen_per_second := 18.0
+@export var move_speed := 110.0
+@export var attack_range := 30.0
+@export var attack_cooldown := 0.9
+@export var attack_throw_force := 550.0
+@export var attack_throw_duration := 0.6
+@export var wander_target_reached_distance := 8.0
+@export var chase_probe_distance := 50.0
+@export var chase_detour_scan_rays := 11
+@export var chase_detour_scan_angle_degrees := 140.0
 
 var dir = Vector2.RIGHT
 var start_position: Vector2
@@ -45,10 +45,23 @@ var _pass_through_bob_phase := 0.0
 var _sprite_base_position := Vector2.ZERO
 
 @export var retarget_interval := 0.3
-@export var teleport_if_player_farther_than := 260.0
+@export var teleport_if_player_farther_than := 200.0
 @export var teleport_player_offset := Vector2(40, 0)
 
 var _retarget_timer := 0.0
+
+@export var queen_contact_distance := 10.0
+@export var chase_give_up_time := 5.0
+var _chase_frustration := 0.0
+var _is_retreating := false
+var _retreat_speed := 80.0
+
+@export var rage_damage_threshold := 500
+@export var rage_speed_multiplier := 1.3
+@export var rage_damage_multiplier := 1.4
+@export var rage_cooldown_multiplier := 0.7
+var _total_damage_taken := 0
+var _is_rage_active := false
 
 func _get_player_stats() -> Node:
 	return get_node_or_null("/root/PlayerStats")
@@ -63,6 +76,22 @@ func _is_target_alive(target: Node) -> bool:
 	if "is_alive" in target:
 		return bool(target.is_alive)
 	return true
+
+
+func _has_line_of_sight_to(target: Node) -> bool:
+	if target == null:
+		return false
+	var space := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.create(global_position, target.global_position)
+	query.exclude = [self]
+	query.collide_with_areas = false
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		return true
+	var collider := hit.get("collider") as Node
+	if collider == null:
+		return false
+	return collider == target or target.is_ancestor_of(collider)
 
 
 func _add_shooting_progress(amount: float) -> void:
@@ -132,12 +161,24 @@ func _process(delta):
 		_retarget_timer = 0.0
 		_retarget_to_nearest()
 
+	# Retreat mode: moving back to start position
+	if _is_retreating:
+		_process_retreat(delta)
+		return
+
 	var target := _current_target()
 	if target == player:
+		_chase_frustration += delta
+		if _chase_frustration >= chase_give_up_time and not _has_hit_queen and not _forced_player_aggro:
+			_is_retreating = true
+			_chase_frustration = 0.0
+			return
 		_process_chase_and_attack_player(delta)
 	elif target == queen:
+		_chase_frustration = 0.0
 		_process_chase_and_attack_queen(delta)
 	else:
+		_chase_frustration = 0.0
 		_process_wander(delta)
 
 
@@ -145,30 +186,41 @@ func _current_target() -> Node:
 	var player_alive := player != null and _is_target_alive(player)
 	var queen_alive := queen != null and _is_target_alive(queen)
 
-	if _forced_player_aggro:
-		if player_alive:
-			return player
-		return null
-
 	if not player_alive and not queen_alive:
 		return null
 
-	# Always prioritize the player if alive, only target queen if player is dead
-	if player_alive:
-		return player
-	elif queen_alive:
+	# After stealing ring, always chase and kill player
+	if _has_hit_queen:
+		return player if player_alive else null
+
+	# If player hit skeleton, force aggro on player
+	if _forced_player_aggro:
+		return player if player_alive else (queen if queen_alive else null)
+
+	# Target NPC (queen) first — skeleton wants the ring.
+	# Only target queen if we have line of sight to her.
+	if queen_alive and _has_line_of_sight_to(queen):
+		# If player gets too close, switch to player
+		if player_alive and global_position.distance_to(player.global_position) <= 180.0:
+			return player
 		return queen
-	else:
-		return null
+
+	# Queen alive but no LOS — don't chase blindly; wander or chase player if close.
+	if queen_alive and player_alive and global_position.distance_to(player.global_position) <= 180.0:
+		return player
+
+	return player if player_alive else null
 
 
 func _retarget_to_nearest() -> void:
-	# Always track both targets dynamically - skeleton targets nearest regardless of ring status
+	# Only clear references if both targets are actually dead (not just out of LOS)
 	var next_target := _current_target()
-	# Keep both player and queen alive for retargeting
 	if next_target == null:
-		player = null
-		queen = null
+		var player_alive := player != null and _is_target_alive(player)
+		var queen_alive := queen != null and _is_target_alive(queen)
+		if not player_alive and not queen_alive:
+			player = null
+			queen = null
 
 
 func _process_chase_and_attack_queen(delta: float) -> void:
@@ -195,7 +247,7 @@ func _process_chase_and_attack_queen(delta: float) -> void:
 	velocity = velocity.move_toward(chase_vel, move_speed * delta * 5.0)
 	move_and_slide()
 
-	if dist <= attack_range:
+	if dist <= queen_contact_distance:
 		_try_attack_queen()
 
 	_reset_pass_through_bob(delta)
@@ -255,6 +307,29 @@ func _process_chase_and_attack_player(delta: float) -> void:
 		_teleport_player_if_far()
 
 	_update_pass_through_bob(delta, dist)
+
+
+func _process_retreat(delta: float) -> void:
+	if queen != null and _is_target_alive(queen) and _has_line_of_sight_to(queen):
+		_is_retreating = false
+		_chase_frustration = 0.0
+		return
+
+	var to_start := start_position - global_position
+	if to_start.length_squared() <= 64.0:
+		_is_retreating = false
+		_chase_frustration = 0.0
+		current_state = IDLE
+		velocity = velocity.move_toward(Vector2.ZERO, move_speed * delta * 6.0)
+		move_and_slide()
+		return
+
+	var move_dir := to_start.normalized()
+	if move_dir.x != 0.0:
+		$AnimatedSprite2D.flip_h = move_dir.x < 0.0
+	$AnimatedSprite2D.play("walk")
+	velocity = velocity.move_toward(move_dir * _retreat_speed, move_speed * delta * 5.0)
+	move_and_slide()
 
 
 func _process_wander(delta: float) -> void:
@@ -319,7 +394,7 @@ func _try_attack_player() -> void:
 	# Calculate throw force based on ring status
 	var throw_force := attack_throw_force
 	if _has_hit_queen:
-		throw_force *= 1.3  # 2x force after ring stolen
+		throw_force *= 1.5  # 50% stronger after ring stolen
 
 	if player.has_method("apply_uncontrolled_throw"):
 		player.call("apply_uncontrolled_throw", global_position, throw_force, attack_throw_duration)
@@ -333,14 +408,29 @@ func _try_attack_player() -> void:
 			if "max_health" in player:
 				heal_max = player.max_health
 			var damage_amount := int(ceil(heal_max * 0.3))
+			if _is_rage_active:
+				damage_amount = int(ceil(damage_amount * rage_damage_multiplier))
 			player.call("take_damage", damage_amount)
 
 		# Slowness only applies after the ring is stolen.
 		if _has_hit_queen and player.has_method("apply_skeleton_slow"):
 			player.call("apply_skeleton_slow", 3.0, 1.8)
 
+		# Bone splash effect
+		Helpers.spawn_bone_effect(player.global_position)
+
+		# Princess regeneration (slow heal over time)
+		if player.has_method("apply_skeleton_regen"):
+			player.call("apply_skeleton_regen", 4, 2.0)
+
+		# Bleeding blood stains
+		if player.has_method("start_bleeding"):
+			player.call("start_bleeding", 6.0)
+
 	# Retarget after hit immediately
 	_retarget_timer = retarget_interval
+
+	_chase_frustration = 0.0
 
 	_attack_in_progress = false
 	is_attacking = false
@@ -522,18 +612,19 @@ func enemy():
 
 
 func take_damage(damage: int):
+	Helpers.spawn_blood_effect(global_position)
 	$skeletonHit.play()
 	$AnimatedSprite2D.play("hit")
-	await get_tree().create_timer(1).timeout
-	_add_shooting_progress(1.0)
-	current_health -= damage
-	current_health = max(1, current_health)
-	healthBar.value = current_health
 	_force_target_player_after_hit()
+	_total_damage_taken += damage
+	if not _is_rage_active and _total_damage_taken >= rage_damage_threshold:
+		_activate_rage_mode()
 
 
 func _force_target_player_after_hit() -> void:
 	_forced_player_aggro = true
+	_is_retreating = false
+	_chase_frustration = 0.0
 	if player == null or not _is_target_alive(player):
 		var players := get_tree().get_nodes_in_group("player")
 		if players.size() > 0:
@@ -546,6 +637,17 @@ func _force_target_player_after_hit() -> void:
 				player = maybe_player
 	queen = null
 	_retarget_timer = retarget_interval
+
+
+func _activate_rage_mode() -> void:
+	_is_rage_active = true
+	if $AnimatedSprite2D:
+		$AnimatedSprite2D.modulate = Color(1.0, 0.2, 0.2, 1.0)
+	move_speed *= rage_speed_multiplier
+	attack_throw_force *= rage_damage_multiplier
+	attack_cooldown *= rage_cooldown_multiplier
+	auto_regen_below_percent = 60.0
+	auto_regen_per_second *= 2.5
 
 
 func _update_auto_regen(delta: float) -> void:

@@ -116,7 +116,8 @@ func _physics_process(delta: float) -> void:
 
 	velocity += _combat_knockback_velocity
 	
-	move_and_slide()
+	if is_inside_tree():
+		move_and_slide()
 	_handle_collision_reroute()
 	_update_floating_effect(delta)
 
@@ -557,6 +558,7 @@ func _on_attack_cooldown_timeout() -> void:
 
 
 func take_damage(amount: int) -> void:
+	Helpers.spawn_blood_effect(global_position)
 	current_health = max(0, current_health - amount)
 	_refresh_health_bar()
 	if current_health <= 0:

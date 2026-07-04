@@ -744,54 +744,33 @@ func _create_intro_hud() -> void:
 	_intro_hud_layer.layer = 60
 	add_child(_intro_hud_layer)
 
-	# Info square panel
-	var info_panel = PanelContainer.new()
-	info_panel.position = Vector2(16, 16)
-	info_panel.size = Vector2(380, 260)
-	info_panel.custom_minimum_size = Vector2(380, 260)
-	var style = StyleBoxFlat.new()
-	style.bg_color = Color(0.08, 0.08, 0.10, 0.92)
-	style.border_color = Color(0.78, 0.66, 0.42, 0.7)
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.corner_radius_top_left = 12
-	style.corner_radius_top_right = 12
-	style.corner_radius_bottom_left = 12
-	style.corner_radius_bottom_right = 12
-	info_panel.add_theme_stylebox_override("panel", style)
-	_intro_hud_layer.add_child(info_panel)
-
-	var vbox = VBoxContainer.new()
-	vbox.anchor_left = 0.0
-	vbox.anchor_top = 0.0
-	vbox.anchor_right = 1.0
-	vbox.anchor_bottom = 1.0
-	vbox.offset_left = 12
-	vbox.offset_top = 10
-	vbox.offset_right = -12
-	vbox.offset_bottom = -10
-	vbox.add_theme_constant_override("separation", 6)
-	info_panel.add_child(vbox)
-
-	# Health hearts (10 hearts, 1 heart = 10%)
-	var health_label = Label.new()
-	health_label.text = "Health:"
-	health_label.add_theme_font_size_override("font_size", 15)
-	vbox.add_child(health_label)
+	# --- Health hearts: top center ---
+	var hearts_bg := ColorRect.new()
+	hearts_bg.anchor_left = 0.5
+	hearts_bg.anchor_top = 0.0
+	hearts_bg.anchor_right = 0.5
+	hearts_bg.anchor_bottom = 0.0
+	hearts_bg.position = Vector2(-140, 6)
+	hearts_bg.size = Vector2(280, 30)
+	hearts_bg.color = Color(0.05, 0.05, 0.08, 0.6)
+	_intro_hud_layer.add_child(hearts_bg)
 
 	var hearts_row := HBoxContainer.new()
-	hearts_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hearts_row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	hearts_row.add_theme_constant_override("separation", 3)
-	vbox.add_child(hearts_row)
+	hearts_row.anchor_left = 0.5
+	hearts_row.anchor_top = 0.0
+	hearts_row.anchor_right = 0.5
+	hearts_row.anchor_bottom = 0.0
+	hearts_row.position = Vector2(-135, 8)
+	hearts_row.size = Vector2(270, 26)
+	hearts_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	hearts_row.add_theme_constant_override("separation", 4)
+	_intro_hud_layer.add_child(hearts_row)
 
 	_player_hearts.clear()
 	for i in range(10):
 		var heart := Label.new()
 		heart.text = "♥"
-		heart.add_theme_font_size_override("font_size", 20)
+		heart.add_theme_font_size_override("font_size", 18)
 		heart.add_theme_color_override("font_color", Color(0.35, 0.35, 0.35, 0.95))
 		hearts_row.add_child(heart)
 		_player_hearts.append(heart)
@@ -801,65 +780,133 @@ func _create_intro_hud() -> void:
 		initial_hp_percent = float(_player_instance.current_health) / maxf(1.0, float(_player_instance.max_health)) * 100.0
 	_set_player_hearts(initial_hp_percent)
 
-	# Quest/objective
-	var quest_label = Label.new()
-	quest_label.text = "Quest:"
-	quest_label.add_theme_font_size_override("font_size", 15)
-	vbox.add_child(quest_label)
+	# --- Quest / objective: top-left ---
 	_objective_label = Label.new()
+	_objective_label.anchor_left = 0.0
+	_objective_label.anchor_top = 0.0
+	_objective_label.anchor_right = 0.0
+	_objective_label.anchor_bottom = 0.0
+	_objective_label.position = Vector2(10, 42)
+	_objective_label.size = Vector2(360, 20)
+	_objective_label.add_theme_font_size_override("font_size", 13)
+	_objective_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.24, 1.0))
 	_objective_label.text = ""
-	_objective_label.add_theme_font_size_override("font_size", 14)
-	vbox.add_child(_objective_label)
+	_intro_hud_layer.add_child(_objective_label)
 
-	# Coordinates
-	var coord_label = Label.new()
-	coord_label.text = "Coordinates:"
-	coord_label.add_theme_font_size_override("font_size", 15)
-	vbox.add_child(coord_label)
+	# --- Coordinates: top-left below quest ---
 	_coordinate_label = Label.new()
+	_coordinate_label.anchor_left = 0.0
+	_coordinate_label.anchor_top = 0.0
+	_coordinate_label.anchor_right = 0.0
+	_coordinate_label.anchor_bottom = 0.0
+	_coordinate_label.position = Vector2(10, 60)
+	_coordinate_label.size = Vector2(200, 16)
+	_coordinate_label.add_theme_font_size_override("font_size", 11)
+	_coordinate_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 0.8))
 	_coordinate_label.text = ""
-	_coordinate_label.add_theme_font_size_override("font_size", 14)
-	vbox.add_child(_coordinate_label)
+	_intro_hud_layer.add_child(_coordinate_label)
+
+	# --- Energy bar: bottom-left ---
+	var energy_bg := ColorRect.new()
+	energy_bg.anchor_left = 0.0
+	energy_bg.anchor_top = 1.0
+	energy_bg.anchor_right = 0.0
+	energy_bg.anchor_bottom = 1.0
+	energy_bg.position = Vector2(10, -44)
+	energy_bg.size = Vector2(160, 36)
+	energy_bg.color = Color(0.05, 0.05, 0.08, 0.6)
+	_intro_hud_layer.add_child(energy_bg)
 
 	var energy_label := Label.new()
+	energy_label.anchor_left = 0.0
+	energy_label.anchor_top = 1.0
+	energy_label.anchor_right = 0.0
+	energy_label.anchor_bottom = 1.0
+	energy_label.position = Vector2(16, -40)
+	energy_label.size = Vector2(60, 14)
 	energy_label.text = "Energy"
-	energy_label.add_theme_font_size_override("font_size", 13)
-	vbox.add_child(energy_label)
+	energy_label.add_theme_font_size_override("font_size", 10)
+	energy_label.add_theme_color_override("font_color", Color(0.22, 0.52, 0.98, 1.0))
+	_intro_hud_layer.add_child(energy_label)
 
 	_energy_bar = ProgressBar.new()
+	_energy_bar.anchor_left = 0.0
+	_energy_bar.anchor_top = 1.0
+	_energy_bar.anchor_right = 0.0
+	_energy_bar.anchor_bottom = 1.0
+	_energy_bar.position = Vector2(14, -24)
+	_energy_bar.size = Vector2(152, 14)
 	_energy_bar.min_value = 0
 	_energy_bar.max_value = 100
 	_energy_bar.value = 0
-	_energy_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_energy_bar.custom_minimum_size = Vector2(0, 14)
+	_energy_bar.show_percentage = false
 	_energy_bar.add_theme_color_override("fg_color", Color(0.22, 0.52, 0.98, 1.0))
-	_energy_bar.add_theme_color_override("bg_color", Color(0.13, 0.16, 0.22, 1.0))
-	vbox.add_child(_energy_bar)
+	_energy_bar.add_theme_color_override("bg_color", Color(0.10, 0.10, 0.14, 0.8))
+	_intro_hud_layer.add_child(_energy_bar)
+
+	# --- Strength bar: bottom-right ---
+	var strength_bg := ColorRect.new()
+	strength_bg.anchor_left = 1.0
+	strength_bg.anchor_top = 1.0
+	strength_bg.anchor_right = 1.0
+	strength_bg.anchor_bottom = 1.0
+	strength_bg.position = Vector2(-170, -44)
+	strength_bg.size = Vector2(160, 36)
+	strength_bg.color = Color(0.05, 0.05, 0.08, 0.6)
+	_intro_hud_layer.add_child(strength_bg)
 
 	var strength_label := Label.new()
+	strength_label.anchor_left = 1.0
+	strength_label.anchor_top = 1.0
+	strength_label.anchor_right = 1.0
+	strength_label.anchor_bottom = 1.0
+	strength_label.position = Vector2(-164, -40)
+	strength_label.size = Vector2(60, 14)
 	strength_label.text = "Strength"
-	strength_label.add_theme_font_size_override("font_size", 13)
-	vbox.add_child(strength_label)
+	strength_label.add_theme_font_size_override("font_size", 10)
+	strength_label.add_theme_color_override("font_color", Color(0.62, 0.26, 0.86, 1.0))
+	_intro_hud_layer.add_child(strength_label)
 
 	_strength_bar = ProgressBar.new()
+	_strength_bar.anchor_left = 1.0
+	_strength_bar.anchor_top = 1.0
+	_strength_bar.anchor_right = 1.0
+	_strength_bar.anchor_bottom = 1.0
+	_strength_bar.position = Vector2(-166, -24)
+	_strength_bar.size = Vector2(152, 14)
 	_strength_bar.min_value = 0
 	_strength_bar.max_value = 100
 	_strength_bar.value = 0
-	_strength_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_strength_bar.custom_minimum_size = Vector2(0, 14)
+	_strength_bar.show_percentage = false
 	_strength_bar.add_theme_color_override("fg_color", Color(0.62, 0.26, 0.86, 1.0))
-	_strength_bar.add_theme_color_override("bg_color", Color(0.18, 0.14, 0.22, 1.0))
-	vbox.add_child(_strength_bar)
+	_strength_bar.add_theme_color_override("bg_color", Color(0.10, 0.10, 0.14, 0.8))
+	_intro_hud_layer.add_child(_strength_bar)
 
-	var inventory_label := Label.new()
-	inventory_label.text = "Inventory"
-	inventory_label.add_theme_font_size_override("font_size", 14)
-	vbox.add_child(inventory_label)
+	# --- Potion counts: bottom center ---
+	var potion_bg := ColorRect.new()
+	potion_bg.anchor_left = 0.5
+	potion_bg.anchor_top = 1.0
+	potion_bg.anchor_right = 0.5
+	potion_bg.anchor_bottom = 1.0
+	potion_bg.position = Vector2(-120, -90)
+	potion_bg.size = Vector2(240, 80)
+	potion_bg.color = Color(0.05, 0.05, 0.08, 0.6)
+	_intro_hud_layer.add_child(potion_bg)
+
+	var potion_vbox := VBoxContainer.new()
+	potion_vbox.anchor_left = 0.5
+	potion_vbox.anchor_top = 1.0
+	potion_vbox.anchor_right = 0.5
+	potion_vbox.anchor_bottom = 1.0
+	potion_vbox.position = Vector2(-114, -84)
+	potion_vbox.size = Vector2(228, 72)
+	potion_vbox.add_theme_constant_override("separation", 4)
+	_intro_hud_layer.add_child(potion_vbox)
 
 	_potion_count_labels.clear()
-	_add_potion_row(vbox, "health", Color(0.95, 0.82, 0.16, 1.0), "Regeneration")
-	_add_potion_row(vbox, "strength", Color(0.62, 0.26, 0.86, 1.0), "Strength Potion")
-	_add_potion_row(vbox, "energy", Color(0.22, 0.52, 0.98, 1.0), "Energy Drink")
+	_add_potion_row(potion_vbox, "health", Color(0.95, 0.82, 0.16, 1.0), "Regeneration")
+	_add_potion_row(potion_vbox, "strength", Color(0.62, 0.26, 0.86, 1.0), "Strength Potion")
+	_add_potion_row(potion_vbox, "energy", Color(0.22, 0.52, 0.98, 1.0), "Energy Drink")
 	_update_potion_inventory()
 	_update_resource_bars()
 
@@ -998,20 +1045,21 @@ func _set_player_hearts(health_percent: float) -> void:
 			heart.add_theme_color_override("font_color", Color(0.35, 0.35, 0.35, 0.95))
 
 
-func _add_potion_row(parent: VBoxContainer, potion_type: String, tint: Color, label_text: String) -> void:
+func _add_potion_row(parent: Node, potion_type: String, tint: Color, label_text: String) -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 6)
 	parent.add_child(row)
 
 	var icon := TextureRect.new()
-	icon.custom_minimum_size = Vector2(16, 16)
+	icon.custom_minimum_size = Vector2(14, 14)
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture = _build_potion_icon_texture(tint)
 	row.add_child(icon)
 
 	var count_label := Label.new()
 	count_label.text = "%s x0" % label_text
-	count_label.add_theme_font_size_override("font_size", 12)
+	count_label.add_theme_font_size_override("font_size", 11)
+	count_label.add_theme_color_override("font_color", Color(0.85, 0.85, 0.9, 0.9))
 	row.add_child(count_label)
 
 	_potion_count_labels[potion_type] = count_label

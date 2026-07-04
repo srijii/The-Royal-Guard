@@ -21,21 +21,24 @@ const OPTIONS_PATH := "user://options.cfg"
 @export var attack_damage := 40
 @export var attack_range := 60.0
 @export var attack_arc_degrees := 80.0
-@export var attack_cooldown := 0.5
+@export var attack_cooldown := 0.6
+@export var attack_knockback_force := 360.0
 @export var attack_animation_fps_multiplier := 1.7
 @export var attack_lock_movement := false
 @export var combat_knockback_decay := 1500.0
-@export var regeneration_total_hearts := 7
-@export var regeneration_heart_heal_amount := 10
-@export var regeneration_first_tick_delay := 1.0
-@export var regeneration_delay_step := 2.0
-@export var strength_potion_duration := 15.0
-@export var strength_potion_gain_percent := 20.0
+@export var regeneration_total_hearts := 5
+@export var regeneration_heart_heal_amount := 12
+@export var regeneration_first_tick_delay := 0.5
+@export var regeneration_delay_step := 1.0
+@export var strength_potion_duration := 25.0
+@export var strength_potion_gain_percent := 25.0
 @export var full_strength_damage_reduction := 0.30
 @export var full_strength_min_attack_damage := 150
 @export var max_energy := 100.0
 @export var energy_gain_per_drink := 100.0
 @export var energy_drain_per_second := 10.0
+@export var energy_regen_standing := 15.0
+@export var energy_regen_walking := 5.0
 @export var max_strength := 100.0
 
 
@@ -57,6 +60,7 @@ func take_damage(amount: int) -> void:
 		damage_amount = int(round(float(amount) * (1.0 - full_strength_damage_reduction)))
 		damage_amount = max(1, damage_amount)
 	current_health = max(0, current_health - damage_amount)
+	Helpers.spawn_blood_effect(global_position)
 	if current_health == 0:
 		die()
 
@@ -121,6 +125,7 @@ var _skeleton_slow_factor := 1.0
 var _skeleton_slow_time_left := 0.0
 var _is_attacking := false
 var _attack_time_left := 0.0
+
 var _attack_duration := 0.0
 var _attack_cooldown_left := 0.0
 var _attack_hit_done := false
@@ -139,6 +144,11 @@ var _strength_value := 0.0
 var _regeneration_hearts_left := 0
 var _regeneration_next_delay := 1.0
 var _regeneration_timer: Timer = null
+var _skeleton_regen_hearts_left := 0
+var _skeleton_regen_timer: Timer = null
+var _is_bleeding := false
+var _bleeding_time_left := 0.0
+var _bleeding_stain_timer := 0.0
 var _mobile_controls_enabled := false
 var _mobile_layer: CanvasLayer = null
 var _mobile_joystick_base: ColorRect = null
@@ -149,6 +159,10 @@ var _mobile_joystick_radius := 62.0
 var _mobile_move_vector := Vector2.ZERO
 var _mobile_attack_pressed := false
 var _mobile_sprint_pressed := false
+
+
+func is_attacking() -> bool:
+	return _is_attacking
 
 
 func _ready():
@@ -368,6 +382,41 @@ func apply_skeleton_slow(slow_multiplier := 3.0, duration := 1.8) -> void:
 	_skeleton_slow_time_left = maxf(_skeleton_slow_time_left, duration)
 
 
+func apply_skeleton_regen(hearts := 4, delay := 2.0) -> void:
+	_ensure_skeleton_regen_timer()
+	_skeleton_regen_hearts_left = max(_skeleton_regen_hearts_left, hearts)
+	if not _skeleton_regen_timer.is_stopped():
+		return
+	_skeleton_regen_timer.start(delay)
+
+
+func _ensure_skeleton_regen_timer() -> void:
+	if _skeleton_regen_timer != null:
+		return
+	_skeleton_regen_timer = Timer.new()
+	_skeleton_regen_timer.one_shot = false
+	_skeleton_regen_timer.autostart = false
+	add_child(_skeleton_regen_timer)
+	_skeleton_regen_timer.timeout.connect(_on_skeleton_regen_tick)
+
+
+func _on_skeleton_regen_tick() -> void:
+	if _skeleton_regen_hearts_left <= 0:
+		_skeleton_regen_timer.stop()
+		return
+	heal(6)
+	_skeleton_regen_hearts_left -= 1
+	var scene := get_tree().get_current_scene()
+	if scene and scene.has_method("_show_system_message"):
+		scene.call("_show_system_message", "Princess supports you with the ring's regeneration!", 2.0)
+
+
+func start_bleeding(duration := 6.0) -> void:
+	_is_bleeding = true
+	_bleeding_time_left = duration
+	_bleeding_stain_timer = 0.1
+
+
 func _physics_process(delta):
 	_update_camera_hold_zoom(delta)
 	_update_combat_knockback(delta)
@@ -384,6 +433,15 @@ func _physics_process(delta):
 		_skeleton_slow_time_left = maxf(0.0, _skeleton_slow_time_left - delta)
 		if _skeleton_slow_time_left <= 0.0:
 			_skeleton_slow_factor = 1.0
+
+	if _is_bleeding:
+		_bleeding_time_left = maxf(0.0, _bleeding_time_left - delta)
+		_bleeding_stain_timer = maxf(0.0, _bleeding_stain_timer - delta)
+		if _bleeding_stain_timer <= 0.0 and velocity.length() > 20.0:
+			_bleeding_stain_timer = 0.2
+			Helpers.spawn_blood_stain(global_position)
+		if _bleeding_time_left <= 0.0:
+			_is_bleeding = false
 
 	if _is_attacking:
 		_process_attack(delta)
@@ -412,6 +470,10 @@ func _physics_process(delta):
 	var stair_type := get_stair_type()
 	var sprinting := _consume_energy_for_sprint(delta, input_dir)
 	_is_running = sprinting
+
+	if not sprinting and _energy_value < max_energy:
+		var regen_rate := energy_regen_standing if input_dir == Vector2.ZERO else energy_regen_walking
+		_energy_value = minf(max_energy, _energy_value + regen_rate * delta)
 
 	if animated_sprite:
 		animated_sprite.speed_scale = run_animation_fps_multiplier if _is_running else 1.0
@@ -555,7 +617,7 @@ func _do_attack_hit() -> void:
 
 	# Always show attack effect, even if no enemy is hit.
 	var fx_target := global_position + facing * attack_range
-	_spawn_player_attack_fx(fx_target)
+	_spawn_player_attack_fx(fx_target, facing)
 
 	var enemies: Array[Node] = get_tree().get_nodes_in_group("enemy")
 	var arc_cos: float = cos(deg_to_rad(attack_arc_degrees * 0.5))
@@ -581,50 +643,56 @@ func _do_attack_hit() -> void:
 		if enemy.has_method("take_damage"):
 			enemy.call("take_damage", total_damage)
 		if enemy.has_method("apply_combat_knockback"):
-			enemy.call("apply_combat_knockback", global_position, 360.0)
+			enemy.call("apply_combat_knockback", global_position, attack_knockback_force)
 
 
-func _spawn_player_attack_fx(target_position: Vector2) -> void:
+func _spawn_player_attack_fx(target_position: Vector2, facing_dir: Vector2) -> void:
 	var fx_root := get_tree().current_scene
 	if fx_root == null:
 		fx_root = get_tree().root
 
-	var bolt_root := Node2D.new()
-	bolt_root.global_position = global_position
-	fx_root.add_child(bolt_root)
+	var slash := Node2D.new()
+	slash.global_position = global_position
+	slash.rotation = atan2(facing_dir.y, facing_dir.x)
+	fx_root.add_child(slash)
 
-	var pulse := Polygon2D.new()
-	pulse.polygon = PackedVector2Array([
-		Vector2(0.0, -8.0),
-		Vector2(15.0, 0.0),
-		Vector2(0.0, 8.0),
-		Vector2(-15.0, 0.0)
-	])
-	pulse.color = Color(0.04, 0.04, 0.04, 0.95)
-	bolt_root.add_child(pulse)
+	var arc := Polygon2D.new()
+	var arc_points := PackedVector2Array()
+	var arc_radius := 28.0
+	var arc_angle := deg_to_rad(55.0)
+	var steps := 10
+	for i in range(steps + 1):
+		var t := float(i) / float(steps)
+		var a := -arc_angle + t * 2.0 * arc_angle
+		arc_points.append(Vector2(cos(a) * arc_radius, sin(a) * arc_radius))
+	for i in range(steps, -1, -1):
+		var t := float(i) / float(steps)
+		var a := -arc_angle + t * 2.0 * arc_angle
+		arc_points.append(Vector2(cos(a) * arc_radius * 0.65, sin(a) * arc_radius * 0.65))
+	arc.polygon = arc_points
+	arc.color = Color(1.0, 0.72, 0.18, 0.9)
+	arc.offset = Vector2(6.0, 0.0)
+	slash.add_child(arc)
 
-	for i in range(3):
+	for i in range(5):
 		var spark := Line2D.new()
-		spark.width = 1.6
-		spark.default_color = Color(0.22, 0.22, 0.25, 0.95)
-		var x_shift := (float(i) - 1.0) * 3.5
+		spark.width = 1.8
+		spark.default_color = Color(1.0, 0.6, 0.1, 0.95)
+		var spread := (float(i) - 2.0) * 4.0
 		spark.points = PackedVector2Array([
-			Vector2(-9.0 + x_shift, -4.0),
-			Vector2(-2.0 + x_shift, 2.0),
-			Vector2(6.0 + x_shift, -3.0),
-			Vector2(11.0 + x_shift, 3.0)
+			Vector2(spread, spread * 0.3),
+			Vector2(spread + 20.0 + randf_range(-4.0, 4.0), spread * -0.3 + randf_range(-2.0, 2.0))
 		])
-		bolt_root.add_child(spark)
+		slash.add_child(spark)
 
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(bolt_root, "global_position", target_position, 0.18)
-	tween.tween_property(bolt_root, "rotation", randf_range(-0.35, 0.35), 0.18).from(0.0)
-	tween.tween_property(bolt_root, "scale", Vector2(1.9, 1.9), 0.18).from(Vector2.ONE)
-	tween.tween_property(bolt_root, "modulate:a", 0.0, 0.18)
+	tween.tween_property(slash, "global_position", target_position, 0.15)
+	tween.tween_property(slash, "modulate:a", 0.0, 0.15)
+	tween.tween_property(arc, "scale", Vector2(1.4, 1.4), 0.15)
 	tween.finished.connect(func() -> void:
-		if is_instance_valid(bolt_root):
-			bolt_root.queue_free()
+		if is_instance_valid(slash):
+			slash.queue_free()
 	)
 
 
@@ -907,9 +975,10 @@ func get_stair_type() -> String:
 	if data == null:
 		return ""
 
-	var t = data.get_custom_data("type")
-	if typeof(t) == TYPE_STRING:
-		return t
+	if data.has_custom_data("type"):
+		var t = data.get_custom_data("type")
+		if typeof(t) == TYPE_STRING:
+			return t
 	return ""
 
 

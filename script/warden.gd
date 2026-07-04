@@ -8,18 +8,19 @@ enum State {
 }
 
 @export var wander_radius: float = 96.0
-@export var detection_radius: float = 180.0
-@export var attack_range: float = 34.0
-@export var move_speed_min: float = 96.0
-@export var move_speed_max: float = 125.0
-@export var attack_cooldown_min: float = 1.0
-@export var attack_cooldown_max: float = 1.0
-@export var attack_damage: int = 10
-@export var attack_anim_time: float = 0.50
-@export var health: int = 120
-@export var knockback_force_taken: float = 520.0
-@export var knockback_decay: float = 520.0
-@export var player_memory_time: float = 2.5
+@export var detection_radius: float = 220.0
+@export var attack_range: float = 42.0
+@export var move_speed_min: float = 100.0
+@export var move_speed_max: float = 135.0
+@export var attack_cooldown_min: float = 0.8
+@export var attack_cooldown_max: float = 1.2
+@export var attack_damage: int = 18
+@export var attack_anim_time: float = 0.35
+@export var health: int = 100
+@export var knockback_force_taken: float = 450.0
+@export var knockback_decay: float = 450.0
+@export var player_memory_time: float = 3.5
+@export var player_knockback_force: float = 350.0
 @export var idle_wait_min: float = 1.0
 @export var idle_wait_max: float = 3.0
 @export var avoid_turn_strength: float = 0.65
@@ -101,6 +102,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if not is_inside_tree() or not is_physics_processing():
+		return
 	var start_position := global_position
 
 	if _attack_cooldown_left > 0.0:
@@ -126,7 +129,8 @@ func _physics_process(delta: float) -> void:
 
 	velocity += _combat_knockback_velocity
 	
-	move_and_slide()
+	if is_inside_tree():
+		move_and_slide()
 	var moved_distance := global_position.distance_to(start_position)
 	_update_wander_unstuck(delta, moved_distance)
 	_handle_collision_reroute()
@@ -373,7 +377,7 @@ func _perform_attack() -> void:
 	if player.has_method("take_damage"):
 		player.call("take_damage", attack_damage)
 	if player.has_method("apply_combat_knockback"):
-		player.call("apply_combat_knockback", global_position, 430.0)
+		player.call("apply_combat_knockback", global_position, player_knockback_force)
 
 
 func _spawn_shockwave(_shockwave_target: Vector2) -> void:
@@ -388,13 +392,13 @@ func _spawn_shockwave(_shockwave_target: Vector2) -> void:
 		Vector2(0.0, 7.0),
 		Vector2(-12.0, 0.0)
 	])
-	pulse.color = Color(0.6, 0.9, 0.7, 0.95)
+	pulse.color = Color(0.9, 0.3, 0.6, 0.95)
 	pulse.global_position = global_position
 	fx_root.add_child(pulse)
 
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(pulse, "global_position", target_position, 0.20)
+	tween.tween_property(pulse, "global_position", _shockwave_target, 0.20)
 	tween.tween_property(pulse, "scale", Vector2(1.8, 1.8), 0.20).from(Vector2.ONE)
 	tween.tween_property(pulse, "modulate:a", 0.0, 0.20)
 	tween.finished.connect(func() -> void:
@@ -615,6 +619,7 @@ func _on_attack_cooldown_timeout() -> void:
 
 
 func take_damage(amount: int) -> void:
+	Helpers.spawn_blood_effect(global_position)
 	current_health = max(0, current_health - amount)
 	_refresh_health_bar()
 	if current_health <= 0:

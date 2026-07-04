@@ -639,6 +639,7 @@ func _on_attack_cooldown_timeout() -> void:
 func take_damage(amount: int) -> void:
 	if _defeated:
 		return
+	Helpers.spawn_blood_effect(global_position)
 	current_health = max(0, current_health - amount)
 	_refresh_health_bar()
 	if current_health <= 0:

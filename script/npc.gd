@@ -28,6 +28,12 @@ signal return_briefing_ready
 @export var wander_progress_epsilon := 4.0
 @export var view_debug_visible := false
 
+@export var dodge_range := 75.0
+@export var dodge_teleport_distance := 120.0
+@export var dodge_cooldown_seconds := 4.0
+var _dodge_cooldown := 0.0
+var _cautious_timer := 0.0
+
 var _sprite: AnimatedSprite2D = null
 var _player_ref: Node2D = null
 var _canvas_modulate: CanvasModulate = null
@@ -101,10 +107,20 @@ func _begin_story_if_needed() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_dodge_cooldown = maxf(0.0, _dodge_cooldown - delta)
+	_cautious_timer = maxf(0.0, _cautious_timer - delta)
+
+	# Dodge if player attacks while within range
+	if _dodge_cooldown <= 0.0 and _player_ref != null:
+		var dist := global_position.distance_to(_player_ref.global_position)
+		if dist <= dodge_range and _player_ref.has_method("is_attacking") and _player_ref.call("is_attacking"):
+			_try_dodge_attack()
+			return
+
 	var stuck_to_player := false
 	if _player_ref != null:
 		var dist := global_position.distance_to(_player_ref.global_position)
-		if dist < player_personal_space_radius * 0.85:
+		if dist < player_personal_space_radius * 0.85 or (_cautious_timer > 0.0 and dist < dodge_range * 0.7):
 			# If overlapping, forcibly move away from player
 			var away := (global_position - _player_ref.global_position).normalized()
 			if away.length() < 0.1:
@@ -728,6 +744,53 @@ var _idle_facing_time := 0.0
 var _last_facing_dir := Vector2.ZERO
 var _anti_idle_cooldown := 0.0
 
+func _try_dodge_attack() -> void:
+	_dodge_cooldown = dodge_cooldown_seconds
+	_cautious_timer = 5.0
+
+	var away_dir := (global_position - _player_ref.global_position).normalized()
+	if away_dir.length() <= 0.1:
+		away_dir = Vector2.UP
+	away_dir = away_dir.rotated(randf_range(-0.8, 0.8))
+
+	var dodge_dist := dodge_teleport_distance
+	var new_pos := global_position + away_dir * dodge_dist
+	if not _is_point_in_wander_space(new_pos):
+		away_dir = -away_dir
+		new_pos = global_position + away_dir * dodge_dist * 0.6
+		if not _is_point_in_wander_space(new_pos):
+			new_pos = global_position + Vector2(randf_range(-60, 60), randf_range(-60, 60))
+			if not _is_point_in_wander_space(new_pos):
+				return
+
+	if _sprite:
+		_sprite.visible = false
+	global_position = new_pos
+	velocity = Vector2.ZERO
+	get_tree().create_timer(0.06).timeout.connect(func():
+		if is_instance_valid(_sprite):
+			_sprite.visible = true
+	)
+
+	if _player_ref and _player_ref.has_method("apply_skeleton_slow"):
+		_player_ref.call("apply_skeleton_slow", 2.0, 1.5)
+
+	var scene := get_tree().get_current_scene()
+	if scene and scene.has_method("_show_system_message"):
+		scene.call("_show_system_message", "Princess dodged your attack and used the ring to slow you down!", 2.5)
+
+	_wander_enabled = true
+	var run_target := global_position + away_dir * 150.0
+	if _is_point_in_wander_space(run_target):
+		_wander_target = run_target
+		_wander_primary_target = run_target
+		_wander_has_target = true
+		_wander_has_primary_target = true
+	_wander_wait_time_left = 0.0
+	_time_at_wander_location = 0.0
+	_last_move_dir = away_dir
+
+
 func _process_wander(delta: float) -> void:
 	if _attention_cooldown_left > 0.0:
 		_attention_cooldown_left = maxf(0.0, _attention_cooldown_left - delta)
@@ -749,6 +812,20 @@ func _process_wander(delta: float) -> void:
 			_pick_new_wander_target()
 			_time_at_wander_location = 0.0
 		return
+
+	if _player_ref:
+		var player_dist := global_position.distance_to(_player_ref.global_position)
+		# Actively face the player when they're within view, even outside the cone
+		if player_dist <= view_distance * 0.5 and _attention_cooldown_left <= 0.0:
+			var to_player := (_player_ref.global_position - global_position).normalized()
+			_last_move_dir = to_player
+			_wander_wait_time_left = maxf(_wander_wait_time_left, view_attention_pause_seconds * 0.5)
+			_attention_cooldown_left = view_attention_cooldown_seconds * 0.6
+			velocity = Vector2.ZERO
+			move_and_slide()
+			_set_princess_animation(Vector2.ZERO)
+			_time_at_wander_location += delta
+			return
 
 	if _player_ref and _is_point_in_view(_player_ref.global_position) and _attention_cooldown_left <= 0.0:
 		# If player is seen in front view, stay attentive for a brief moment.
