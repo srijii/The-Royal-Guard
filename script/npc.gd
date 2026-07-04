@@ -527,7 +527,10 @@ func _say_timed(speaker: String, text: String, seconds: float) -> void:
 	var time_left := seconds
 	while time_left > 0.0 and not _skip_tutorial_requested:
 		var step := minf(0.08, time_left)
-		await get_tree().create_timer(step).timeout
+		var tree := get_tree()
+		if not tree:
+			return
+		await tree.create_timer(step).timeout
 		time_left -= step
 
 

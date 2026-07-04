@@ -469,9 +469,9 @@ func _try_attack_queen() -> void:
 		is_attacking = false
 		if queen != null and queen.has_method("flee_from_skeleton"):
 			queen.call("flee_from_skeleton")
-		var scene := get_tree().get_current_scene()
-		if scene and scene.has_method("_show_system_message"):
-			scene.call("_show_system_message", "Backup skeleton has stolen the ring!", 3.0)
+		var current_scene := get_tree().get_current_scene()
+		if current_scene and current_scene.has_method("_show_system_message"):
+			current_scene.call("_show_system_message", "Backup skeleton has stolen the ring!", 3.0)
 		await get_tree().create_timer(0.5).timeout
 		_teleport_to_player_and_kill()
 		return
@@ -663,9 +663,9 @@ func _force_target_player_after_hit() -> void:
 		if players.size() > 0:
 			player = players[0]
 	if player == null:
-		var scene := get_tree().current_scene
-		if scene != null:
-			var maybe_player := scene.get_node_or_null("player")
+		var current_scene := get_tree().current_scene
+		if current_scene != null:
+			var maybe_player := current_scene.get_node_or_null("player")
 			if maybe_player != null:
 				player = maybe_player
 	queen = null

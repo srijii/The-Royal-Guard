@@ -276,6 +276,22 @@ func _unhandled_input(event: InputEvent) -> void:
 			if drag.index == _mobile_joystick_touch_id:
 				_update_mobile_joystick(drag.position)
 				get_viewport().set_input_as_handled()
+		elif event is InputEventMouseButton:
+			var mb := event as InputEventMouseButton
+			if mb.pressed:
+				if _mobile_joystick_touch_id == -1 and mb.position.distance_to(_mobile_joystick_center) <= _mobile_joystick_radius * 1.6:
+					_mobile_joystick_touch_id = 0
+					_update_mobile_joystick(mb.position)
+					get_viewport().set_input_as_handled()
+			elif _mobile_joystick_touch_id == 0:
+				_mobile_joystick_touch_id = -1
+				_reset_mobile_joystick()
+				get_viewport().set_input_as_handled()
+		elif event is InputEventMouseMotion:
+			var mm := event as InputEventMouseMotion
+			if _mobile_joystick_touch_id == 0 and mm.button_mask & MOUSE_BUTTON_MASK_LEFT:
+				_update_mobile_joystick(mm.position)
+				get_viewport().set_input_as_handled()
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_L:
@@ -854,11 +870,11 @@ func _get_move_input_vector() -> Vector2:
 
 
 func _setup_mobile_controls_if_enabled() -> void:
-	_mobile_controls_enabled = true
+	_mobile_controls_enabled = false
 
 	var cfg := ConfigFile.new()
 	if cfg.load(OPTIONS_PATH) == OK:
-		_mobile_controls_enabled = bool(cfg.get_value("controls", "mobile_controls", _mobile_controls_enabled))
+		_mobile_controls_enabled = bool(cfg.get_value("controls", "mobile_controls", false))
 
 	if not _mobile_controls_enabled:
 		return
@@ -903,34 +919,39 @@ func _setup_mobile_controls_if_enabled() -> void:
 	_mobile_joystick_knob.z_index = 201
 	_mobile_layer.add_child(_mobile_joystick_knob)
 
-	var attack_size := 74.0
-	var sprint_size := 64.0
-	var heal_size := 56.0
-	var small_size := 50.0
-	var map_size := 46.0
+	var attack_d := 74.0
+	var sprint_d := 64.0
+	var heal_d := 56.0
+	var small_d := 50.0
+	var map_d := 46.0
 
-	_create_mobile_action_button("\u2694", Vector2(viewport_size.x - attack_size, viewport_size.y - attack_size * 1.1), attack_size, btn_opacity, func() -> void:
+	var ax := viewport_size.x - 80.0
+	var ay := viewport_size.y - 90.0
+
+	_create_mobile_action_button("\u2694", Vector2(ax, ay), attack_d, btn_opacity, func() -> void:
 		_mobile_attack_pressed = true
 	, func() -> void:
 		_mobile_attack_pressed = false
 	)
 
-	_create_mobile_action_button("\u26A1", Vector2(viewport_size.x - sprint_size * 2.2, viewport_size.y - sprint_size * 1.6), sprint_size, btn_opacity, func() -> void:
+	_create_mobile_action_button("\u26A1", Vector2(ax - 90.0, ay - 48.0), sprint_d, btn_opacity, func() -> void:
 		_mobile_sprint_pressed = true
 	, func() -> void:
 		_mobile_sprint_pressed = false
 	)
 
-	_create_mobile_action_button("\u2302", Vector2(viewport_size.x * 0.06 + map_size * 0.5, viewport_size.y * 0.10 + map_size * 0.5), map_size, btn_opacity, func() -> void:
+	_create_mobile_action_button("\u2302", Vector2(viewport_size.x * 0.065, viewport_size.y * 0.10), map_d, btn_opacity, func() -> void:
 		_mobile_map_pressed = true
 	, func() -> void:
 		_mobile_map_pressed = false
 	)
 
-	_create_mobile_tap_button("\u2665", Vector2(viewport_size.x - heal_size * 1.3, viewport_size.y - heal_size * 2.8), heal_size, btn_opacity, Callable(self, "_use_health_potion"))
-	_create_mobile_tap_button("\u2726", Vector2(viewport_size.x - small_size * 2.8, viewport_size.y - small_size * 4.3), small_size, btn_opacity, Callable(self, "_use_strength_potion"))
-	_create_mobile_tap_button("\u2605", Vector2(viewport_size.x - small_size * 1.3, viewport_size.y - small_size * 4.3), small_size, btn_opacity, Callable(self, "_use_energy_drink"))
-	_create_mobile_tap_button("\u2600", Vector2(viewport_size.x - small_size * 4.3, viewport_size.y - small_size * 4.3), small_size, btn_opacity, Callable(self, "_toggle_mobile_lamp"))
+	_create_mobile_tap_button("\u2665", Vector2(ax, ay - 86.0), heal_d, btn_opacity, Callable(self, "_use_health_potion"))
+
+	var top_y := viewport_size.y * 0.15
+	_create_mobile_tap_button("\u2726", Vector2(viewport_size.x - 160.0, top_y), small_d, btn_opacity, Callable(self, "_use_strength_potion"))
+	_create_mobile_tap_button("\u2605", Vector2(viewport_size.x - 90.0, top_y), small_d, btn_opacity, Callable(self, "_use_energy_drink"))
+	_create_mobile_tap_button("\u2600", Vector2(viewport_size.x - 230.0, top_y), small_d, btn_opacity, Callable(self, "_toggle_mobile_lamp"))
 
 
 func _create_mobile_action_button(label_text: String, center_pos: Vector2, diameter: float, opacity: float, on_press: Callable, on_release: Callable) -> void:
