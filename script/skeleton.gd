@@ -6,6 +6,7 @@ func _is_player_target(body: Node) -> bool:
 	return body != null and body.has_method("is_player") and body.is_player()
 
 signal ring_stolen
+signal requested_backup(spawn_position: Vector2)
 
 var health = 99999
 var current_health = health
@@ -62,6 +63,9 @@ var _retreat_speed := 80.0
 @export var rage_cooldown_multiplier := 0.7
 var _total_damage_taken := 0
 var _is_rage_active := false
+var _no_target_time := 0.0
+var _backup_requested := false
+var _queen_ring_stolen_fast := false
 
 func _get_player_stats() -> Node:
 	return get_node_or_null("/root/PlayerStats")
@@ -169,6 +173,7 @@ func _process(delta):
 	var target := _current_target()
 	if target == player:
 		_chase_frustration += delta
+		_no_target_time = 0.0
 		if _chase_frustration >= chase_give_up_time and not _has_hit_queen and not _forced_player_aggro:
 			_is_retreating = true
 			_chase_frustration = 0.0
@@ -176,9 +181,14 @@ func _process(delta):
 		_process_chase_and_attack_player(delta)
 	elif target == queen:
 		_chase_frustration = 0.0
+		_no_target_time = 0.0
 		_process_chase_and_attack_queen(delta)
 	else:
 		_chase_frustration = 0.0
+		_no_target_time += delta
+		if _no_target_time >= 3.0 and not _backup_requested:
+			_backup_requested = true
+			emit_signal("requested_backup", global_position)
 		_process_wander(delta)
 
 
@@ -416,8 +426,9 @@ func _try_attack_player() -> void:
 		if _has_hit_queen and player.has_method("apply_skeleton_slow"):
 			player.call("apply_skeleton_slow", 3.0, 1.8)
 
-		# Bone splash effect
+		# Bone splash + blood effect
 		Helpers.spawn_bone_effect(player.global_position)
+		Helpers.spawn_blood_effect(player.global_position)
 
 		# Princess regeneration (slow heal over time)
 		if player.has_method("apply_skeleton_regen"):
@@ -448,42 +459,63 @@ func _try_attack_queen() -> void:
 	_attack_cooldown_left = attack_cooldown
 	$AnimatedSprite2D.play("attack")
 
-	# queen hit means skeleton will now prioritize player permanently
 	_has_hit_queen = true
 	emit_signal("ring_stolen")
-	_retarget_timer = retarget_interval  # Retarget immediately after
+	_retarget_timer = retarget_interval
+
+	if _instant_kill_target:
+		_queen_ring_stolen_fast = true
+		_attack_in_progress = false
+		is_attacking = false
+		if queen != null and queen.has_method("flee_from_skeleton"):
+			queen.call("flee_from_skeleton")
+		var scene := get_tree().get_current_scene()
+		if scene and scene.has_method("_show_system_message"):
+			scene.call("_show_system_message", "Backup skeleton has stolen the ring!", 3.0)
+		await get_tree().create_timer(0.5).timeout
+		_teleport_to_player_and_kill()
+		return
 
 	await get_tree().create_timer(0.28).timeout
 
-	# Show impact feedback even during ring-steal sequence.
 	$AnimatedSprite2D.play("hit")
 	await get_tree().create_timer(0.14).timeout
 
-	# Make the queen flee
 	if queen != null and queen.has_method("flee_from_skeleton"):
 		queen.call("flee_from_skeleton")
 	
-	# Show event caption through world-style system message
 	var scene = get_tree().get_current_scene()
 	if scene and scene.has_method("_show_system_message"):
 		scene.call("_show_system_message", "Skeleton has stolen the ring!", 3.0)
 	
-	# Laugh after getting the ring
 	await get_tree().create_timer(0.5).timeout
 	$skeletonLaughs.play()
 	
-	# Skeleton taunts the player
 	await get_tree().create_timer(0.8).timeout
 	if scene and scene.has_method("_show_system_message"):
 		scene.call("_show_system_message", "Skeleton: Hahaha, I have the ring!", 3.0)
 	
-	# Keep pressure after stealing the ring; player is no longer instant-killed here.
 	await get_tree().create_timer(0.6).timeout
 
 	_attack_in_progress = false
 	is_attacking = false
 	if not is_dead and _current_target() != null:
 		current_state = WALK
+
+
+func _teleport_to_player_and_kill() -> void:
+	if player == null or not _is_target_alive(player):
+		return
+	global_position = player.global_position + teleport_player_offset
+	var scene := get_tree().get_current_scene()
+	if scene and scene.has_method("_show_system_message"):
+		scene.call("_show_system_message", "Backup skeleton teleported to you!", 2.5)
+	if player.has_method("take_damage"):
+		player.call("take_damage", 999)
+	if player.has_method("apply_skeleton_slow"):
+		player.call("apply_skeleton_slow", 5.0, 3.0)
+	if scene and scene.has_method("_show_system_message"):
+		scene.call("_show_system_message", "Backup skeleton killed you!", 3.0)
 
 
 func _teleport_player_if_far() -> void:
@@ -613,6 +645,7 @@ func enemy():
 
 func take_damage(damage: int):
 	Helpers.spawn_blood_effect(global_position)
+	Helpers.spawn_blood_stain(global_position)
 	$skeletonHit.play()
 	$AnimatedSprite2D.play("hit")
 	_force_target_player_after_hit()

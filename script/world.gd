@@ -20,6 +20,7 @@ const PAUSE_KEY_ACTIONS := {
 @export var npc_spawn_offset := Vector2(0, -100)
 @export var npc_scene: PackedScene = preload("res://scene/npc.tscn")
 @export var skeleton_scene: PackedScene = preload("res://scene/skeleton.tscn")
+@export var backup_spawn_radius := 60.0
 @export var torch_scene: PackedScene = preload("res://scene/torch.tscn")
 @export var palace_map_scene: PackedScene = preload("res://scene/palace_map.tscn")
 @export var skeleton_night_spawn_position := Vector2(239, 127)
@@ -882,24 +883,24 @@ func _create_intro_hud() -> void:
 	_strength_bar.add_theme_color_override("bg_color", Color(0.10, 0.10, 0.14, 0.8))
 	_intro_hud_layer.add_child(_strength_bar)
 
-	# --- Potion counts: bottom center ---
+	# --- Potion counts: top-right ---
 	var potion_bg := ColorRect.new()
-	potion_bg.anchor_left = 0.5
-	potion_bg.anchor_top = 1.0
-	potion_bg.anchor_right = 0.5
-	potion_bg.anchor_bottom = 1.0
-	potion_bg.position = Vector2(-120, -90)
-	potion_bg.size = Vector2(240, 80)
+	potion_bg.anchor_left = 1.0
+	potion_bg.anchor_top = 0.0
+	potion_bg.anchor_right = 1.0
+	potion_bg.anchor_bottom = 0.0
+	potion_bg.position = Vector2(-240, 6)
+	potion_bg.size = Vector2(230, 80)
 	potion_bg.color = Color(0.05, 0.05, 0.08, 0.6)
 	_intro_hud_layer.add_child(potion_bg)
 
 	var potion_vbox := VBoxContainer.new()
-	potion_vbox.anchor_left = 0.5
-	potion_vbox.anchor_top = 1.0
-	potion_vbox.anchor_right = 0.5
-	potion_vbox.anchor_bottom = 1.0
-	potion_vbox.position = Vector2(-114, -84)
-	potion_vbox.size = Vector2(228, 72)
+	potion_vbox.anchor_left = 1.0
+	potion_vbox.anchor_top = 0.0
+	potion_vbox.anchor_right = 1.0
+	potion_vbox.anchor_bottom = 0.0
+	potion_vbox.position = Vector2(-234, 10)
+	potion_vbox.size = Vector2(220, 72)
 	potion_vbox.add_theme_constant_override("separation", 4)
 	_intro_hud_layer.add_child(potion_vbox)
 
@@ -1370,6 +1371,8 @@ func _try_intro_interaction() -> void:
 	if _current_interactable and not _map_read and _map_node == _current_interactable:
 		if await _map_node.try_interact():
 			_map_read = true
+			if _player_instance and _player_instance.has_method("set_map_unlocked"):
+				_player_instance.call("set_map_unlocked")
 			_apply_map_visual_state()
 			if _has_torch:
 				_set_objective_text("Quest: Return to the princess before midnight")
@@ -1398,6 +1401,8 @@ func _debug_skip_torch_and_map_step() -> void:
 
 	_has_torch = true
 	_map_read = true
+	if _player_instance and _player_instance.has_method("set_map_unlocked"):
+		_player_instance.call("set_map_unlocked")
 	_intro_exploration_active = false
 	_intro_return_started = true
 	_apply_torch_visual_state()
@@ -1545,6 +1550,31 @@ func _connect_skeleton_ring_signal(skeleton: Node) -> void:
 		return
 	if skeleton.has_signal("ring_stolen") and not skeleton.is_connected("ring_stolen", Callable(self, "_on_skeleton_ring_stolen")):
 		skeleton.connect("ring_stolen", Callable(self, "_on_skeleton_ring_stolen"))
+	if skeleton.has_signal("requested_backup") and not skeleton.is_connected("requested_backup", Callable(self, "_on_skeleton_requested_backup")):
+		skeleton.connect("requested_backup", Callable(self, "_on_skeleton_requested_backup"))
+
+
+func _on_skeleton_requested_backup(_skeleton_position: Vector2) -> void:
+	if _npc_instance == null or skeleton_scene == null:
+		return
+	if not is_instance_valid(_npc_instance):
+		return
+
+	var backup := skeleton_scene.instantiate() as Node2D
+	if backup == null:
+		return
+
+	var npc_pos := _npc_instance.global_position
+	var offset := Vector2(randf_range(-backup_spawn_radius, backup_spawn_radius), randf_range(-backup_spawn_radius, backup_spawn_radius))
+	backup.global_position = npc_pos + offset
+	backup.name = "BackupSkeleton_%d" % randi()
+	add_child(backup)
+	_connect_skeleton_ring_signal(backup)
+
+	if backup.has_method("set_forced_target"):
+		backup.call("set_forced_target", _npc_instance, true, true)
+
+	_show_system_message("A backup skeleton appeared near the princess!", 3.0)
 
 
 func _run_queen_escape_sequence(skeleton: Node2D) -> void:

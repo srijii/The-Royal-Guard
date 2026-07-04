@@ -16,7 +16,7 @@ func spawn_blood_effect(position: Vector2) -> void:
 
 	var root_tween := create_tween()
 	root_tween.set_parallel(true)
-	for i in range(6):
+	for i in range(10):
 		var drop := Polygon2D.new()
 		var size := randf_range(2.0, 6.0)
 		drop.polygon = PackedVector2Array([

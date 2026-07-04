@@ -47,6 +47,7 @@ var _wizard_key_count_label: Label = null
 var _quest_label: Label = null
 var _tutorial_attack_label: Label = null
 var _tutorial_potions_label: Label = null
+var _tutorial_sprint_label: Label = null
 var _energy_bar: ProgressBar = null
 var _strength_bar: ProgressBar = null
 var _pause_layer: CanvasLayer = null
@@ -124,107 +125,174 @@ func _create_health_hud() -> void:
 	hud_layer.name = "OuterworldHUD"
 	add_child(hud_layer)
 
-	var panel := PanelContainer.new()
-	panel.anchor_left = 0.0
-	panel.anchor_top = 0.0
-	panel.anchor_right = 0.0
-	panel.anchor_bottom = 0.0
-	panel.offset_left = 14.0
-	panel.offset_top = 14.0
-	panel.offset_right = 360.0
-	panel.offset_bottom = 320.0
-	hud_layer.add_child(panel)
-
-	var panel_style := StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.08, 0.10, 0.12, 0.9)
-	panel_style.border_color = Color(0.82, 0.85, 0.90, 0.35)
-	panel_style.border_width_left = 2
-	panel_style.border_width_top = 2
-	panel_style.border_width_right = 2
-	panel_style.border_width_bottom = 2
-	panel_style.corner_radius_top_left = 10
-	panel_style.corner_radius_top_right = 10
-	panel_style.corner_radius_bottom_left = 10
-	panel_style.corner_radius_bottom_right = 10
-	panel.add_theme_stylebox_override("panel", panel_style)
-
-	var vb := VBoxContainer.new()
-	vb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	vb.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	vb.add_theme_constant_override("separation", 5)
-	panel.add_child(vb)
-
-	var player_label := Label.new()
-	player_label.text = "Player"
-	player_label.add_theme_font_size_override("font_size", 14)
-	vb.add_child(player_label)
+	# --- Health hearts: top center ---
+	var hearts_bg := ColorRect.new()
+	hearts_bg.anchor_left = 0.5
+	hearts_bg.anchor_top = 0.0
+	hearts_bg.anchor_right = 0.5
+	hearts_bg.anchor_bottom = 0.0
+	hearts_bg.position = Vector2(-140, 6)
+	hearts_bg.size = Vector2(280, 30)
+	hearts_bg.color = Color(0.05, 0.05, 0.08, 0.6)
+	hud_layer.add_child(hearts_bg)
 
 	var hearts_row := HBoxContainer.new()
-	hearts_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	hearts_row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	hearts_row.add_theme_constant_override("separation", 3)
-	vb.add_child(hearts_row)
+	hearts_row.anchor_left = 0.5
+	hearts_row.anchor_top = 0.0
+	hearts_row.anchor_right = 0.5
+	hearts_row.anchor_bottom = 0.0
+	hearts_row.position = Vector2(-135, 8)
+	hearts_row.size = Vector2(270, 26)
+	hearts_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	hearts_row.add_theme_constant_override("separation", 4)
+	hud_layer.add_child(hearts_row)
 
 	_player_hearts.clear()
 	for i in range(10):
 		var heart := Label.new()
 		heart.text = "♥"
-		heart.add_theme_font_size_override("font_size", 20)
+		heart.add_theme_font_size_override("font_size", 18)
 		heart.add_theme_color_override("font_color", Color(0.35, 0.35, 0.35, 0.95))
 		hearts_row.add_child(heart)
 		_player_hearts.append(heart)
 
 	_set_player_hearts(_health_percent(_player_node))
 
+	# --- Coordinates: top-left ---
 	_player_coords_label = Label.new()
+	_player_coords_label.anchor_left = 0.0
+	_player_coords_label.anchor_top = 0.0
+	_player_coords_label.anchor_right = 0.0
+	_player_coords_label.anchor_bottom = 0.0
+	_player_coords_label.position = Vector2(10, 42)
+	_player_coords_label.size = Vector2(200, 16)
 	_player_coords_label.text = "Pos: (0, 0)"
-	_player_coords_label.add_theme_font_size_override("font_size", 13)
-	_player_coords_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9, 0.95))
-	vb.add_child(_player_coords_label)
+	_player_coords_label.add_theme_font_size_override("font_size", 11)
+	_player_coords_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 0.8))
+	hud_layer.add_child(_player_coords_label)
+
+	# --- Energy bar: bottom-left ---
+	var energy_bg := ColorRect.new()
+	energy_bg.anchor_left = 0.0
+	energy_bg.anchor_top = 1.0
+	energy_bg.anchor_right = 0.0
+	energy_bg.anchor_bottom = 1.0
+	energy_bg.position = Vector2(10, -44)
+	energy_bg.size = Vector2(160, 36)
+	energy_bg.color = Color(0.05, 0.05, 0.08, 0.6)
+	hud_layer.add_child(energy_bg)
 
 	var energy_label := Label.new()
+	energy_label.anchor_left = 0.0
+	energy_label.anchor_top = 1.0
+	energy_label.anchor_right = 0.0
+	energy_label.anchor_bottom = 1.0
+	energy_label.position = Vector2(16, -40)
+	energy_label.size = Vector2(60, 14)
 	energy_label.text = "Energy"
-	energy_label.add_theme_font_size_override("font_size", 12)
-	vb.add_child(energy_label)
+	energy_label.add_theme_font_size_override("font_size", 10)
+	energy_label.add_theme_color_override("font_color", Color(0.22, 0.52, 0.98, 1.0))
+	hud_layer.add_child(energy_label)
 
 	_energy_bar = ProgressBar.new()
+	_energy_bar.anchor_left = 0.0
+	_energy_bar.anchor_top = 1.0
+	_energy_bar.anchor_right = 0.0
+	_energy_bar.anchor_bottom = 1.0
+	_energy_bar.position = Vector2(14, -24)
+	_energy_bar.size = Vector2(152, 14)
 	_energy_bar.min_value = 0
 	_energy_bar.max_value = 100
 	_energy_bar.value = 0
-	_energy_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_energy_bar.custom_minimum_size = Vector2(0, 12)
+	_energy_bar.show_percentage = false
 	_energy_bar.add_theme_color_override("fg_color", Color(0.22, 0.52, 0.98, 1.0))
-	_energy_bar.add_theme_color_override("bg_color", Color(0.13, 0.16, 0.22, 1.0))
-	vb.add_child(_energy_bar)
+	_energy_bar.add_theme_color_override("bg_color", Color(0.10, 0.10, 0.14, 0.8))
+	hud_layer.add_child(_energy_bar)
+
+	# --- Strength bar: bottom-right ---
+	var strength_bg := ColorRect.new()
+	strength_bg.anchor_left = 1.0
+	strength_bg.anchor_top = 1.0
+	strength_bg.anchor_right = 1.0
+	strength_bg.anchor_bottom = 1.0
+	strength_bg.position = Vector2(-170, -44)
+	strength_bg.size = Vector2(160, 36)
+	strength_bg.color = Color(0.05, 0.05, 0.08, 0.6)
+	hud_layer.add_child(strength_bg)
 
 	var strength_label := Label.new()
+	strength_label.anchor_left = 1.0
+	strength_label.anchor_top = 1.0
+	strength_label.anchor_right = 1.0
+	strength_label.anchor_bottom = 1.0
+	strength_label.position = Vector2(-164, -40)
+	strength_label.size = Vector2(60, 14)
 	strength_label.text = "Strength"
-	strength_label.add_theme_font_size_override("font_size", 12)
-	vb.add_child(strength_label)
+	strength_label.add_theme_font_size_override("font_size", 10)
+	strength_label.add_theme_color_override("font_color", Color(0.62, 0.26, 0.86, 1.0))
+	hud_layer.add_child(strength_label)
 
 	_strength_bar = ProgressBar.new()
+	_strength_bar.anchor_left = 1.0
+	_strength_bar.anchor_top = 1.0
+	_strength_bar.anchor_right = 1.0
+	_strength_bar.anchor_bottom = 1.0
+	_strength_bar.position = Vector2(-166, -24)
+	_strength_bar.size = Vector2(152, 14)
 	_strength_bar.min_value = 0
 	_strength_bar.max_value = 100
 	_strength_bar.value = 0
-	_strength_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_strength_bar.custom_minimum_size = Vector2(0, 12)
+	_strength_bar.show_percentage = false
 	_strength_bar.add_theme_color_override("fg_color", Color(0.62, 0.26, 0.86, 1.0))
-	_strength_bar.add_theme_color_override("bg_color", Color(0.18, 0.14, 0.22, 1.0))
-	vb.add_child(_strength_bar)
+	_strength_bar.add_theme_color_override("bg_color", Color(0.10, 0.10, 0.14, 0.8))
+	hud_layer.add_child(_strength_bar)
 
-	var inventory_label := Label.new()
-	inventory_label.text = "Inventory"
-	inventory_label.add_theme_font_size_override("font_size", 13)
-	vb.add_child(inventory_label)
+	# --- Potions: top-right ---
+	var potion_bg := ColorRect.new()
+	potion_bg.anchor_left = 1.0
+	potion_bg.anchor_top = 0.0
+	potion_bg.anchor_right = 1.0
+	potion_bg.anchor_bottom = 0.0
+	potion_bg.position = Vector2(-240, 6)
+	potion_bg.size = Vector2(230, 80)
+	potion_bg.color = Color(0.05, 0.05, 0.08, 0.6)
+	hud_layer.add_child(potion_bg)
+
+	var potion_vbox := VBoxContainer.new()
+	potion_vbox.anchor_left = 1.0
+	potion_vbox.anchor_top = 0.0
+	potion_vbox.anchor_right = 1.0
+	potion_vbox.anchor_bottom = 0.0
+	potion_vbox.position = Vector2(-234, 10)
+	potion_vbox.size = Vector2(220, 72)
+	potion_vbox.add_theme_constant_override("separation", 4)
+	hud_layer.add_child(potion_vbox)
 
 	_potion_count_labels.clear()
-	_add_potion_row(vb, "health", Color(0.95, 0.82, 0.16, 1.0), "Regeneration")
-	_add_potion_row(vb, "strength", Color(0.62, 0.26, 0.86, 1.0), "Strength Potion")
-	_add_potion_row(vb, "energy", Color(0.22, 0.52, 0.98, 1.0), "Energy Drink")
+	_add_potion_row(potion_vbox, "health", Color(0.95, 0.82, 0.16, 1.0), "Regeneration")
+	_add_potion_row(potion_vbox, "strength", Color(0.62, 0.26, 0.86, 1.0), "Strength Potion")
+	_add_potion_row(potion_vbox, "energy", Color(0.22, 0.52, 0.98, 1.0), "Energy Drink")
+
+	# --- Wizard key: top-right below potions ---
+	var key_bg := ColorRect.new()
+	key_bg.anchor_left = 1.0
+	key_bg.anchor_top = 0.0
+	key_bg.anchor_right = 1.0
+	key_bg.anchor_bottom = 0.0
+	key_bg.position = Vector2(-240, 90)
+	key_bg.size = Vector2(230, 28)
+	key_bg.color = Color(0.05, 0.05, 0.08, 0.6)
+	hud_layer.add_child(key_bg)
 
 	var key_row := HBoxContainer.new()
+	key_row.anchor_left = 1.0
+	key_row.anchor_top = 0.0
+	key_row.anchor_right = 1.0
+	key_row.anchor_bottom = 0.0
+	key_row.position = Vector2(-234, 92)
+	key_row.size = Vector2(220, 24)
 	key_row.add_theme_constant_override("separation", 6)
-	vb.add_child(key_row)
+	hud_layer.add_child(key_row)
 
 	var key_icon := TextureRect.new()
 	key_icon.custom_minimum_size = Vector2(16, 16)
@@ -235,23 +303,57 @@ func _create_health_hud() -> void:
 	_wizard_key_count_label = Label.new()
 	_wizard_key_count_label.text = "Wizard Key x0"
 	_wizard_key_count_label.add_theme_font_size_override("font_size", 12)
+	_wizard_key_count_label.add_theme_color_override("font_color", Color(0.95, 0.84, 0.24, 1.0))
 	key_row.add_child(_wizard_key_count_label)
 
+	# --- Quest label: top-left ---
 	_quest_label = Label.new()
-	_quest_label.add_theme_font_size_override("font_size", 12)
-	_quest_label.add_theme_color_override("font_color", Color(0.95, 0.84, 0.24, 1.0))
-	vb.add_child(_quest_label)
+	_quest_label.anchor_left = 0.0
+	_quest_label.anchor_top = 0.0
+	_quest_label.anchor_right = 0.0
+	_quest_label.anchor_bottom = 0.0
+	_quest_label.position = Vector2(10, 60)
+	_quest_label.size = Vector2(360, 16)
+	_quest_label.add_theme_font_size_override("font_size", 11)
+	_quest_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.24, 1.0))
+	hud_layer.add_child(_quest_label)
 
+	# --- Tutorial labels: bottom center ---
 	_tutorial_attack_label = Label.new()
+	_tutorial_attack_label.anchor_left = 0.5
+	_tutorial_attack_label.anchor_top = 1.0
+	_tutorial_attack_label.anchor_right = 0.5
+	_tutorial_attack_label.anchor_bottom = 1.0
+	_tutorial_attack_label.position = Vector2(-200, -130)
+	_tutorial_attack_label.size = Vector2(400, 18)
+	_tutorial_attack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tutorial_attack_label.add_theme_font_size_override("font_size", 12)
 	_tutorial_attack_label.add_theme_color_override("font_color", Color(0.82, 0.90, 1.0, 1.0))
-	vb.add_child(_tutorial_attack_label)
+	hud_layer.add_child(_tutorial_attack_label)
 
 	_tutorial_potions_label = Label.new()
+	_tutorial_potions_label.anchor_left = 0.5
+	_tutorial_potions_label.anchor_top = 1.0
+	_tutorial_potions_label.anchor_right = 0.5
+	_tutorial_potions_label.anchor_bottom = 1.0
+	_tutorial_potions_label.position = Vector2(-200, -112)
+	_tutorial_potions_label.size = Vector2(400, 18)
+	_tutorial_potions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tutorial_potions_label.add_theme_font_size_override("font_size", 12)
 	_tutorial_potions_label.add_theme_color_override("font_color", Color(0.82, 0.90, 1.0, 1.0))
-	_tutorial_potions_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	vb.add_child(_tutorial_potions_label)
+	hud_layer.add_child(_tutorial_potions_label)
+
+	_tutorial_sprint_label = Label.new()
+	_tutorial_sprint_label.anchor_left = 0.5
+	_tutorial_sprint_label.anchor_top = 1.0
+	_tutorial_sprint_label.anchor_right = 0.5
+	_tutorial_sprint_label.anchor_bottom = 1.0
+	_tutorial_sprint_label.position = Vector2(-200, -94)
+	_tutorial_sprint_label.size = Vector2(400, 18)
+	_tutorial_sprint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_tutorial_sprint_label.add_theme_font_size_override("font_size", 12)
+	_tutorial_sprint_label.add_theme_color_override("font_color", Color(0.82, 0.90, 1.0, 1.0))
+	hud_layer.add_child(_tutorial_sprint_label)
 
 	_refresh_tutorial_labels()
 
@@ -374,6 +476,9 @@ func _refresh_tutorial_labels() -> void:
 		var strength_key := _pause_describe_action_binding("use_strength_potion")
 		var energy_key := _pause_describe_action_binding("use_energy_drink")
 		_tutorial_potions_label.text = "Tutorial: Potions - %s: Regeneration, %s: Strength, %s: Energy" % [regen_key, strength_key, energy_key]
+
+	if _tutorial_sprint_label != null:
+		_tutorial_sprint_label.text = "Tutorial: Hold Shift to sprint (uses Energy)"
 
 
 func _update_resource_bars() -> void:

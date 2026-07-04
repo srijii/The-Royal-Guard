@@ -24,41 +24,40 @@ var _rebind_target_action := ""
 var _rebind_info_label: Label = null
 var _mobile_controls_check: CheckBox = null
 
-# Called when the node enters the scene tree for the new time.
+
 func _ready():
 	_ensure_default_bind_actions()
 	_load_saved_keybinds()
-	_apply_classic_theme()
+	_apply_royal_theme()
 	_build_settings_popup()
 	if _continue_button:
 		_continue_button.disabled = not FileAccess.file_exists(SAVE_PATH)
 
-# Called every frame. 'delta' is the time elapsed since the last frame.
+
 func _process(_delta):
 	pass
+
 
 func _on_new_game_pressed():
 	if FileAccess.file_exists(SAVE_PATH):
 		DirAccess.remove_absolute(SAVE_PATH)
-
-	# Load and start the game world
 	print("Attempting to load world scene...")
 	var error = get_tree().change_scene_to_file("res://scene/world.tscn")
 	if error != OK:
 		printerr("Failed to load world scene. Error code: ", error)
-		print("Available error codes: OK=0, FAILED=1, ERR_UNAVAILABLE=2, ERR_UNCONFIGURED=3")
 	else:
 		print("World scene loaded successfully!")
+
 
 func _on_continue_pressed():
 	if not FileAccess.file_exists(SAVE_PATH):
 		print("No save found to continue.")
 		return
-
 	print("Loading saved game...")
 	var error = get_tree().change_scene_to_file("res://scene/world.tscn")
 	if error != OK:
 		printerr("Failed to load world scene for continue. Error code: ", error)
+
 
 func _on_settings_pressed():
 	if _settings_popup == null:
@@ -68,8 +67,8 @@ func _on_settings_pressed():
 	_refresh_keybind_button_labels()
 	_settings_popup.popup_centered_ratio(0.6)
 
+
 func _on_credits_pressed():
-	# Load the credits scene
 	print("Loading credits...")
 	var error = get_tree().change_scene_to_file("res://scene/credits.tscn")
 	if error != OK:
@@ -77,40 +76,55 @@ func _on_credits_pressed():
 	else:
 		print("Credits scene loaded successfully!")
 
+
 func _on_exit_pressed():
-	# Close the game
 	get_tree().quit()
 
 
-func _apply_classic_theme() -> void:
-	var handwritten_font := _create_handwritten_font()
-	var background := get_node_or_null("Background") as ColorRect
-	if background:
-		background.color = Color(0.08, 0.06, 0.04, 1.0)
+func _apply_royal_theme() -> void:
+	var royal_font := _create_royal_font()
+
+	var bg := get_node_or_null("Background") as ColorRect
+	if bg:
+		bg.color = Color(0.06, 0.03, 0.10, 1.0)
 
 	var panel := get_node_or_null("PanelContainer") as PanelContainer
 	if panel:
 		var panel_style := StyleBoxFlat.new()
-		panel_style.bg_color = Color(0.17, 0.12, 0.08, 0.96)
-		panel_style.border_color = Color(0.78, 0.66, 0.42, 0.85)
+		panel_style.bg_color = Color(0.10, 0.06, 0.04, 0.92)
+		panel_style.border_color = Color(0.72, 0.55, 0.25, 0.9)
 		panel_style.border_width_left = 2
 		panel_style.border_width_top = 2
 		panel_style.border_width_right = 2
 		panel_style.border_width_bottom = 2
-		panel_style.corner_radius_top_left = 10
-		panel_style.corner_radius_top_right = 10
-		panel_style.corner_radius_bottom_left = 10
-		panel_style.corner_radius_bottom_right = 10
-		panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.45)
-		panel_style.shadow_size = 8
+		panel_style.corner_radius_top_left = 14
+		panel_style.corner_radius_top_right = 14
+		panel_style.corner_radius_bottom_left = 14
+		panel_style.corner_radius_bottom_right = 14
+		panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.6)
+		panel_style.shadow_size = 12
+		panel_style.shadow_offset = Vector2(0, 4)
+		panel_style.anti_aliasing = true
+
+		var inner_glow := StyleBoxFlat.new()
+		inner_glow.bg_color = Color(0.12, 0.07, 0.05, 0.0)
+		inner_glow.border_color = Color(0.9, 0.75, 0.4, 0.15)
+		inner_glow.border_width_left = 1
+		inner_glow.border_width_top = 1
+		inner_glow.border_width_right = 1
+		inner_glow.border_width_bottom = 1
+		inner_glow.corner_radius_top_left = 12
+		inner_glow.corner_radius_top_right = 12
+		inner_glow.corner_radius_bottom_left = 12
+		inner_glow.corner_radius_bottom_right = 12
 
 		var game_theme := Theme.new()
 		game_theme.set_stylebox("panel", "PanelContainer", panel_style)
-		game_theme.set_font("font", "Button", handwritten_font)
+		game_theme.set_stylebox("panel", "MarginContainer", inner_glow)
 
 		var button_normal := StyleBoxFlat.new()
-		button_normal.bg_color = Color(0.26, 0.18, 0.1, 1.0)
-		button_normal.border_color = Color(0.82, 0.71, 0.48, 0.9)
+		button_normal.bg_color = Color(0.22, 0.14, 0.08, 1.0)
+		button_normal.border_color = Color(0.72, 0.55, 0.25, 0.8)
 		button_normal.border_width_left = 1
 		button_normal.border_width_top = 1
 		button_normal.border_width_right = 1
@@ -121,37 +135,62 @@ func _apply_classic_theme() -> void:
 		button_normal.corner_radius_bottom_right = 6
 
 		var button_hover := button_normal.duplicate()
-		button_hover.bg_color = Color(0.33, 0.23, 0.13, 1.0)
+		button_hover.bg_color = Color(0.32, 0.20, 0.10, 1.0)
+		button_hover.border_color = Color(0.90, 0.72, 0.35, 1.0)
+		button_hover.shadow_color = Color(0.72, 0.55, 0.25, 0.3)
+		button_hover.shadow_size = 4
 
 		var button_pressed := button_normal.duplicate()
-		button_pressed.bg_color = Color(0.21, 0.15, 0.09, 1.0)
+		button_pressed.bg_color = Color(0.16, 0.10, 0.06, 1.0)
+		button_pressed.border_color = Color(0.60, 0.45, 0.20, 1.0)
+
+		var button_disabled := button_normal.duplicate()
+		button_disabled.bg_color = Color(0.12, 0.08, 0.05, 1.0)
+		button_disabled.border_color = Color(0.35, 0.28, 0.15, 0.5)
 
 		game_theme.set_stylebox("normal", "Button", button_normal)
 		game_theme.set_stylebox("hover", "Button", button_hover)
 		game_theme.set_stylebox("pressed", "Button", button_pressed)
-		game_theme.set_stylebox("disabled", "Button", button_pressed)
-		game_theme.set_color("font_color", "Button", Color(0.95, 0.9, 0.78, 1.0))
-		game_theme.set_color("font_focus_color", "Button", Color(0.99, 0.95, 0.86, 1.0))
-		game_theme.set_color("font_hover_color", "Button", Color(0.99, 0.95, 0.86, 1.0))
-		game_theme.set_color("font_pressed_color", "Button", Color(0.95, 0.9, 0.78, 1.0))
-		game_theme.set_color("font_disabled_color", "Button", Color(0.68, 0.61, 0.48, 1.0))
+		game_theme.set_stylebox("disabled", "Button", button_disabled)
+
+		game_theme.set_constant("minimum_height", "Button", 46)
+
+		game_theme.set_color("font_color", "Button", Color(0.95, 0.90, 0.78, 1.0))
+		game_theme.set_color("font_focus_color", "Button", Color(1.0, 0.95, 0.85, 1.0))
+		game_theme.set_color("font_hover_color", "Button", Color(1.0, 0.95, 0.85, 1.0))
+		game_theme.set_color("font_pressed_color", "Button", Color(0.90, 0.82, 0.65, 1.0))
+		game_theme.set_color("font_disabled_color", "Button", Color(0.50, 0.45, 0.35, 0.7))
 		panel.theme = game_theme
+
+	var crown_label := get_node_or_null("PanelContainer/MarginContainer/VBoxContainer/CrownLabel") as Label
+	if crown_label:
+		crown_label.add_theme_font_size_override("font_size", 36)
+		crown_label.add_theme_color_override("font_color", Color(0.85, 0.65, 0.25, 1.0))
+		crown_label.add_theme_color_override("font_outline_color", Color(0.12, 0.08, 0.04, 0.8))
+		crown_label.add_theme_constant_override("outline_size", 1)
+
+	var deco_top_line := get_node_or_null("PanelContainer/MarginContainer/VBoxContainer/DecoTopLine") as ColorRect
+	if deco_top_line:
+		deco_top_line.color = Color(0.72, 0.55, 0.25, 0.5)
+
+	var deco_bottom_line := get_node_or_null("PanelContainer/MarginContainer/VBoxContainer/DecoBottomLine") as ColorRect
+	if deco_bottom_line:
+		deco_bottom_line.color = Color(0.72, 0.55, 0.25, 0.5)
 
 	var title := get_node_or_null("PanelContainer/MarginContainer/VBoxContainer/Title") as Label
 	if title:
-		title.text = "ROYAL GUARD"
-		title.add_theme_font_override("font", handwritten_font)
-		title.add_theme_font_size_override("font_size", 46)
+		title.add_theme_font_override("font", royal_font)
+		title.add_theme_font_size_override("font_size", 44)
 		title.add_theme_color_override("font_color", Color(0.97, 0.82, 0.52, 1.0))
-		title.add_theme_color_override("font_outline_color", Color(0.08, 0.05, 0.03, 0.95))
-		title.add_theme_constant_override("outline_size", 2)
+		title.add_theme_color_override("font_outline_color", Color(0.08, 0.04, 0.02, 0.95))
+		title.add_theme_constant_override("outline_size", 3)
 
 	var subtitle := get_node_or_null("PanelContainer/MarginContainer/VBoxContainer/Subtitle") as Label
 	if subtitle:
-		subtitle.text = "A classic palace tale"
-		subtitle.add_theme_font_override("font", handwritten_font)
-		subtitle.add_theme_font_size_override("font_size", 18)
-		subtitle.add_theme_color_override("font_color", Color(0.9, 0.84, 0.72, 1.0))
+		subtitle.text = "⚔  Defend the Crown  ⚔"
+		subtitle.add_theme_font_override("font", royal_font)
+		subtitle.add_theme_font_size_override("font_size", 16)
+		subtitle.add_theme_color_override("font_color", Color(0.85, 0.75, 0.60, 1.0))
 
 	for path in [
 		"PanelContainer/MarginContainer/VBoxContainer/NewGameButton",
@@ -162,10 +201,11 @@ func _apply_classic_theme() -> void:
 	]:
 		var button := get_node_or_null(path) as Button
 		if button:
-			button.add_theme_font_override("font", handwritten_font)
+			button.add_theme_font_override("font", royal_font)
+			button.add_theme_font_size_override("font_size", 16)
 
 
-func _create_handwritten_font() -> Font:
+func _create_royal_font() -> Font:
 	var game_font := load("res://fonts/Retro Gaming.ttf") as Font
 	if game_font:
 		return game_font
@@ -173,10 +213,11 @@ func _create_handwritten_font() -> Font:
 	var fallback := SystemFont.new()
 	fallback.font_names = PackedStringArray([
 		"Retro Gaming",
+		"Noto Serif",
+		"Liberation Serif",
+		"FreeSerif",
 		"Segoe Script",
 		"Bradley Hand ITC",
-		"Lucida Handwriting",
-		"Comic Sans MS"
 	])
 	return fallback
 
@@ -347,7 +388,6 @@ func _load_saved_keybinds() -> void:
 func _on_mobile_controls_toggled(enabled: bool) -> void:
 	var cfg := ConfigFile.new()
 	if cfg.load(OPTIONS_PATH) != OK:
-		# start fresh options config if file did not exist
 		pass
 	cfg.set_value("controls", "mobile_controls", enabled)
 	cfg.save(OPTIONS_PATH)

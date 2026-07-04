@@ -30,15 +30,17 @@ const OPTIONS_PATH := "user://options.cfg"
 @export var regeneration_heart_heal_amount := 12
 @export var regeneration_first_tick_delay := 0.5
 @export var regeneration_delay_step := 1.0
-@export var strength_potion_duration := 25.0
-@export var strength_potion_gain_percent := 25.0
+@export var strength_potion_duration := 20.0
+@export var strength_potion_gain_percent := 20.0
 @export var full_strength_damage_reduction := 0.30
 @export var full_strength_min_attack_damage := 150
+@export var attack_energy_cost_min := 8.0
+@export var attack_energy_cost_max := 20.0
 @export var max_energy := 100.0
-@export var energy_gain_per_drink := 100.0
-@export var energy_drain_per_second := 10.0
-@export var energy_regen_standing := 15.0
-@export var energy_regen_walking := 5.0
+@export var energy_gain_per_drink := 50.0
+@export var energy_drain_per_second := 25.0
+@export var energy_regen_standing := 6.0
+@export var energy_regen_walking := 2.0
 @export var max_strength := 100.0
 
 
@@ -61,6 +63,7 @@ func take_damage(amount: int) -> void:
 		damage_amount = max(1, damage_amount)
 	current_health = max(0, current_health - damage_amount)
 	Helpers.spawn_blood_effect(global_position)
+	Helpers.spawn_blood_stain(global_position)
 	if current_health == 0:
 		die()
 
@@ -125,6 +128,8 @@ var _skeleton_slow_factor := 1.0
 var _skeleton_slow_time_left := 0.0
 var _is_attacking := false
 var _attack_time_left := 0.0
+var _last_attack_energy_cost := 0.0
+var _last_attack_used_strength := false
 
 var _attack_duration := 0.0
 var _attack_cooldown_left := 0.0
@@ -149,6 +154,7 @@ var _skeleton_regen_timer: Timer = null
 var _is_bleeding := false
 var _bleeding_time_left := 0.0
 var _bleeding_stain_timer := 0.0
+var _map_unlocked := false
 var _mobile_controls_enabled := false
 var _mobile_layer: CanvasLayer = null
 var _mobile_joystick_base: ColorRect = null
@@ -163,6 +169,9 @@ var _mobile_sprint_pressed := false
 
 func is_attacking() -> bool:
 	return _is_attacking
+
+func set_map_unlocked() -> void:
+	_map_unlocked = true
 
 
 func _ready():
@@ -440,6 +449,7 @@ func _physics_process(delta):
 		if _bleeding_stain_timer <= 0.0 and velocity.length() > 20.0:
 			_bleeding_stain_timer = 0.2
 			Helpers.spawn_blood_stain(global_position)
+			Helpers.spawn_blood_effect(global_position)
 		if _bleeding_time_left <= 0.0:
 			_is_bleeding = false
 
@@ -499,7 +509,8 @@ func _physics_process(delta):
 	if input_dir != Vector2.ZERO:
 		last_dir = input_dir.normalized()
 
-	update_animation(velocity.normalized())
+	var anim_dir := input_dir.normalized() if input_dir != Vector2.ZERO else Vector2.ZERO
+	update_animation(anim_dir)
 	_separate_from_other_players()
 
 
@@ -508,7 +519,7 @@ func _update_camera_hold_zoom(delta: float) -> void:
 	if cam == null:
 		return
 
-	var hold_zoom := Input.is_action_pressed("hold_map_zoom")
+	var hold_zoom := _map_unlocked and Input.is_action_pressed("hold_map_zoom")
 	var target_zoom := zoom_out_on_hold if hold_zoom else _camera_normal_zoom
 	cam.zoom = cam.zoom.lerp(target_zoom, clampf(zoom_lerp_speed * delta, 0.0, 1.0))
 
@@ -564,6 +575,20 @@ func _start_attack() -> void:
 	if not controls_enabled or not is_alive or animated_sprite == null:
 		return
 
+	var cost := randf_range(attack_energy_cost_min, attack_energy_cost_max)
+	if _strength_value > 0.0:
+		cost = minf(cost, _strength_value)
+		_strength_value -= cost
+		_last_attack_used_strength = true
+	elif _energy_value > 0.0:
+		cost = minf(cost, _energy_value)
+		_energy_value -= cost
+		_last_attack_used_strength = false
+	else:
+		cost = 0.0
+		_last_attack_used_strength = false
+	_last_attack_energy_cost = cost
+
 	_is_attacking = true
 	_attack_hit_done = false
 	_attack_cooldown_left = attack_cooldown
@@ -615,17 +640,17 @@ func _do_attack_hit() -> void:
 		facing = Vector2.DOWN
 	facing = facing.normalized()
 
-	# Always show attack effect, even if no enemy is hit.
 	var fx_target := global_position + facing * attack_range
 	_spawn_player_attack_fx(fx_target, facing)
 
+	var energy_mult := 1.0 + (_last_attack_energy_cost / 10.0)
+	var total_damage := int(round(float(attack_damage) * energy_mult))
+	if _last_attack_used_strength:
+		total_damage += int(_last_attack_energy_cost * 2.5)
+		total_damage = max(total_damage, full_strength_min_attack_damage)
+
 	var enemies: Array[Node] = get_tree().get_nodes_in_group("enemy")
 	var arc_cos: float = cos(deg_to_rad(attack_arc_degrees * 0.5))
-	var strength_ratio := clampf(_strength_value / maxf(1.0, max_strength), 0.0, 1.0)
-	var damage_multiplier := 1.0 + strength_ratio
-	var total_damage := int(round(float(attack_damage) * damage_multiplier))
-	if _strength_value >= max_strength:
-		total_damage = max(total_damage, full_strength_min_attack_damage)
 	for enemy: Node in enemies:
 		if enemy == null or enemy == self or not (enemy is Node2D):
 			continue
@@ -644,6 +669,8 @@ func _do_attack_hit() -> void:
 			enemy.call("take_damage", total_damage)
 		if enemy.has_method("apply_combat_knockback"):
 			enemy.call("apply_combat_knockback", global_position, attack_knockback_force)
+
+		Helpers.spawn_blood_effect(enemy_pos)
 
 
 func _spawn_player_attack_fx(target_position: Vector2, facing_dir: Vector2) -> void:
