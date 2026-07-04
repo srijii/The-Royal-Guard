@@ -1,6 +1,6 @@
-[gd_scene load_steps=11 format=3 uid="uid://c5o5a2typ10t0"]
+[gd_scene load_steps=11 format=3]
 
-[ext_resource type="Texture2D" uid="uid://d1pvsba8ascxt" path="res://art/light.png" id="1_70wmk"]
+[ext_resource type="Texture2D" path="res://art/light.png" id="1_70wmk"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_0ku2y"]
 region = Rect2(0, 0, 64, 64)

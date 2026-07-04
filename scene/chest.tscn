@@ -1,8 +1,8 @@
-[gd_scene load_steps=9 format=3 uid="uid://d0kjh70b0m1am"]
+[gd_scene load_steps=9 format=3]
 
-[ext_resource type="Texture2D" uid="uid://cp6dcbsuklkoo" path="res://art/krishnadev.jpeg" id="2_cettl"]
-[ext_resource type="Script" uid="uid://c7wtj83adj4br" path="res://script/interactable.gd" id="2_interactable"]
-[ext_resource type="Texture2D" uid="uid://de5eneetd8025" path="res://art/lamiya.jpeg" id="3_26vdv"]
+[ext_resource type="Texture2D" path="res://art/krishnadev.jpeg" id="2_cettl"]
+[ext_resource type="Script" path="res://script/interactable.gd" id="2_interactable"]
+[ext_resource type="Texture2D" path="res://art/lamiya.jpeg" id="3_26vdv"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_bgh66"]
 atlas = ExtResource("2_cettl")

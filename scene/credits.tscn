@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3 uid="uid://caf8mdx7t5yh8"]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://script/credits.gd" id="1_3kx8l"]
 [ext_resource type="Texture2D" path="res://art/srijith.jpeg" id="2_rc3f1"]

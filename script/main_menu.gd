@@ -34,7 +34,7 @@ func _ready():
 		_continue_button.disabled = not FileAccess.file_exists(SAVE_PATH)
 
 # Called every frame. 'delta' is the time elapsed since the last frame.
-func _process(delta):
+func _process(_delta):
 	pass
 
 func _on_new_game_pressed():
@@ -104,9 +104,9 @@ func _apply_classic_theme() -> void:
 		panel_style.shadow_color = Color(0.0, 0.0, 0.0, 0.45)
 		panel_style.shadow_size = 8
 
-		var theme := Theme.new()
-		theme.set_stylebox("panel", "PanelContainer", panel_style)
-		theme.set_font("font", "Button", handwritten_font)
+		var game_theme := Theme.new()
+		game_theme.set_stylebox("panel", "PanelContainer", panel_style)
+		game_theme.set_font("font", "Button", handwritten_font)
 
 		var button_normal := StyleBoxFlat.new()
 		button_normal.bg_color = Color(0.26, 0.18, 0.1, 1.0)
@@ -126,16 +126,16 @@ func _apply_classic_theme() -> void:
 		var button_pressed := button_normal.duplicate()
 		button_pressed.bg_color = Color(0.21, 0.15, 0.09, 1.0)
 
-		theme.set_stylebox("normal", "Button", button_normal)
-		theme.set_stylebox("hover", "Button", button_hover)
-		theme.set_stylebox("pressed", "Button", button_pressed)
-		theme.set_stylebox("disabled", "Button", button_pressed)
-		theme.set_color("font_color", "Button", Color(0.95, 0.9, 0.78, 1.0))
-		theme.set_color("font_focus_color", "Button", Color(0.99, 0.95, 0.86, 1.0))
-		theme.set_color("font_hover_color", "Button", Color(0.99, 0.95, 0.86, 1.0))
-		theme.set_color("font_pressed_color", "Button", Color(0.95, 0.9, 0.78, 1.0))
-		theme.set_color("font_disabled_color", "Button", Color(0.68, 0.61, 0.48, 1.0))
-		panel.theme = theme
+		game_theme.set_stylebox("normal", "Button", button_normal)
+		game_theme.set_stylebox("hover", "Button", button_hover)
+		game_theme.set_stylebox("pressed", "Button", button_pressed)
+		game_theme.set_stylebox("disabled", "Button", button_pressed)
+		game_theme.set_color("font_color", "Button", Color(0.95, 0.9, 0.78, 1.0))
+		game_theme.set_color("font_focus_color", "Button", Color(0.99, 0.95, 0.86, 1.0))
+		game_theme.set_color("font_hover_color", "Button", Color(0.99, 0.95, 0.86, 1.0))
+		game_theme.set_color("font_pressed_color", "Button", Color(0.95, 0.9, 0.78, 1.0))
+		game_theme.set_color("font_disabled_color", "Button", Color(0.68, 0.61, 0.48, 1.0))
+		panel.theme = game_theme
 
 	var title := get_node_or_null("PanelContainer/MarginContainer/VBoxContainer/Title") as Label
 	if title:
@@ -165,7 +165,7 @@ func _apply_classic_theme() -> void:
 			button.add_theme_font_override("font", handwritten_font)
 
 
-func _create_handwritten_font() -> SystemFont:
+func _create_handwritten_font() -> Font:
 	var game_font := load("res://fonts/Retro Gaming.ttf") as Font
 	if game_font:
 		return game_font
@@ -356,5 +356,5 @@ func _on_mobile_controls_toggled(enabled: bool) -> void:
 func _load_mobile_controls_option() -> bool:
 	var cfg := ConfigFile.new()
 	if cfg.load(OPTIONS_PATH) != OK:
-		return true
-	return bool(cfg.get_value("controls", "mobile_controls", true))
+		return false
+	return bool(cfg.get_value("controls", "mobile_controls", false))

@@ -81,6 +81,7 @@ func _get_arrow_damage() -> float:
 
 func _ready():
 	randomize()
+	add_to_group("enemy")
 	start_position = position
 	healthBar.value = current_health
 	_sprite_base_position = $AnimatedSprite2D.position

@@ -87,7 +87,7 @@ func _apply_classic_theme() -> void:
 		back_button.add_theme_font_override("font", handwritten_font)
 
 
-func _create_handwritten_font() -> SystemFont:
+func _create_handwritten_font() -> Font:
 	var game_font := load("res://fonts/Retro Gaming.ttf") as Font
 	if game_font:
 		return game_font

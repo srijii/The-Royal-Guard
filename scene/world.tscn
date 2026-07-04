@@ -1,11 +1,11 @@
-[gd_scene load_steps=12 format=3 uid="uid://dh3yxxa7tqcbx"]
+[gd_scene load_steps=12 format=3]
 
-[ext_resource type="PackedScene" uid="uid://qwqjprrakfq2" path="res://scene/player.tscn" id="1_pjass"]
-[ext_resource type="Texture2D" uid="uid://4smgi57urss0" path="res://tileset/palace-nolight.png" id="2_txmk2"]
-[ext_resource type="Texture2D" uid="uid://yleohcevi5qq" path="res://tileset/walls.png" id="3_w4qq1"]
-[ext_resource type="Texture2D" uid="uid://w2tspkf0hk07" path="res://tileset/throne1.png" id="4_m5mgf"]
-[ext_resource type="Texture2D" uid="uid://12h4how4uhe4" path="res://tileset/roof.png" id="5_emkrx"]
-[ext_resource type="Script" uid="uid://dok6t3un18tq5" path="res://script/world.gd" id="6_world"]
+[ext_resource type="PackedScene" path="res://scene/player.tscn" id="1_pjass"]
+[ext_resource type="Texture2D" path="res://tileset/palace-nolight.png" id="2_txmk2"]
+[ext_resource type="Texture2D" path="res://tileset/walls.png" id="3_w4qq1"]
+[ext_resource type="Texture2D" path="res://tileset/throne1.png" id="4_m5mgf"]
+[ext_resource type="Texture2D" path="res://tileset/roof.png" id="5_emkrx"]
+[ext_resource type="Script" path="res://script/world.gd" id="6_world"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_w4qq1"]
 texture = ExtResource("2_txmk2")

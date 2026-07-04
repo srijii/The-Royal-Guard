@@ -24,7 +24,7 @@ func _ready() -> void:
 		_player_ref = world.get_node_or_null("player") as Node2D
 	
 	# Play idle animation
-	if _sprite:
+	if _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation(idle_animation):
 		_sprite.play(idle_animation)
 
 

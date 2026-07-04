@@ -369,7 +369,7 @@ func _get_attack_cycle_duration(dir: String) -> float:
 	return float(frames) / fps
 
 
-func _spawn_shockwave(target_position: Vector2) -> void:
+func _spawn_shockwave(shockwave_target: Vector2) -> void:
 	var fx_root := get_tree().current_scene
 	if fx_root == null:
 		fx_root = get_tree().root

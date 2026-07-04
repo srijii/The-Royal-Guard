@@ -1,7 +1,7 @@
-[gd_scene load_steps=9 format=3 uid="uid://dyga2u6m1pcxk"]
+[gd_scene load_steps=9 format=3]
 
-[ext_resource type="Texture2D" uid="uid://4smgi57urss0" path="res://tileset/palace-nolight.png" id="1_door_tex"]
-[ext_resource type="Script" uid="uid://c7wtj83adj4br" path="res://script/interactable.gd" id="2_interactable"]
+[ext_resource type="Texture2D" path="res://tileset/palace-nolight.png" id="1_door_tex"]
+[ext_resource type="Script" path="res://script/interactable.gd" id="2_interactable"]
 
 [sub_resource type="AtlasTexture" id="door_idle_1"]
 atlas = ExtResource("1_door_tex")

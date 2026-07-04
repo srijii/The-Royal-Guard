@@ -298,13 +298,13 @@ func flee_from_skeleton() -> void:
 		await get_tree().create_timer(0.08).timeout
 		
 		# Move to a far location away (vary position each teleport)
-		var teleport_offset := Vector2(400, -150)
+		var flee_offset := Vector2(400, -150)
 		if _flee_teleport_count == 2:
-			teleport_offset = Vector2(300, 100)
+			flee_offset = Vector2(300, 100)
 		elif _flee_teleport_count == 3:
-			teleport_offset = Vector2(-350, 150)
+			flee_offset = Vector2(-350, 150)
 		
-		global_position = global_position + teleport_offset
+		global_position = global_position + flee_offset
 		_last_move_dir = Vector2.UP
 		
 		if _sprite:
@@ -469,7 +469,7 @@ func _create_key_badge(text: String, handwritten_font: Font) -> PanelContainer:
 	return badge
 
 
-func _create_handwritten_font() -> SystemFont:
+func _create_handwritten_font() -> Font:
 	var game_font := load("res://fonts/Retro Gaming.ttf") as Font
 	if game_font:
 		return game_font
@@ -608,7 +608,10 @@ func _type_current_caption() -> void:
 		if _skip_typing_requested or _skip_tutorial_requested:
 			break
 		_dialogue_label.visible_characters += 1
-		await get_tree().create_timer(step_delay).timeout
+		var tree := get_tree()
+		if not tree:
+			return
+		await tree.create_timer(step_delay).timeout
 
 	_dialogue_label.visible_characters = -1
 	_is_typing = false
@@ -619,7 +622,10 @@ func _wait_for_advance() -> void:
 	_waiting_for_advance = true
 	_advance_requested = false
 	while not _advance_requested and not _skip_tutorial_requested:
-		await get_tree().process_frame
+		var tree := get_tree()
+		if not tree:
+			return
+		await tree.process_frame
 	_waiting_for_advance = false
 	_advance_requested = false
 

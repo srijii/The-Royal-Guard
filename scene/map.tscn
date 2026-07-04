@@ -1,11 +1,11 @@
-[gd_scene load_steps=19 format=3 uid="uid://c7mj1nti18yv8"]
+[gd_scene load_steps=19 format=3]
 
-[ext_resource type="Script" uid="uid://c7wtj83adj4br" path="res://script/interactable.gd" id="1_interactable"]
-[ext_resource type="Texture2D" uid="uid://cr4j3jslmgpvu" path="res://art/Human-Soldier-Red.png" id="2_map_tex"]
-[ext_resource type="Texture2D" uid="uid://4smgi57urss0" path="res://tileset/palace-nolight.png" id="3_bq37x"]
-[ext_resource type="Texture2D" uid="uid://yleohcevi5qq" path="res://tileset/walls.png" id="4_jp76l"]
-[ext_resource type="Texture2D" uid="uid://w2tspkf0hk07" path="res://tileset/throne1.png" id="5_7ac5c"]
-[ext_resource type="Texture2D" uid="uid://12h4how4uhe4" path="res://tileset/roof.png" id="6_8qxkh"]
+[ext_resource type="Script" path="res://script/interactable.gd" id="1_interactable"]
+[ext_resource type="Texture2D" path="res://art/Human-Soldier-Red.png" id="2_map_tex"]
+[ext_resource type="Texture2D" path="res://tileset/palace-nolight.png" id="3_bq37x"]
+[ext_resource type="Texture2D" path="res://tileset/walls.png" id="4_jp76l"]
+[ext_resource type="Texture2D" path="res://tileset/throne1.png" id="5_7ac5c"]
+[ext_resource type="Texture2D" path="res://tileset/roof.png" id="6_8qxkh"]
 
 [sub_resource type="AtlasTexture" id="AtlasTexture_map_idle_1"]
 atlas = ExtResource("2_map_tex")

@@ -1,7 +1,7 @@
-[gd_scene load_steps=8 format=3 uid="uid://bqbodvk8kv54b"]
+[gd_scene load_steps=8 format=3]
 
-[ext_resource type="Texture2D" uid="uid://cr4j3jslmgpvu" path="res://art/Human-Soldier-Red.png" id="1_guard_tex"]
-[ext_resource type="Script" uid="uid://c7wtj83adj4br" path="res://script/interactable.gd" id="2_interactable"]
+[ext_resource type="Texture2D" path="res://art/Human-Soldier-Red.png" id="1_guard_tex"]
+[ext_resource type="Script" path="res://script/interactable.gd" id="2_interactable"]
 
 [sub_resource type="AtlasTexture" id="guard_idle_1"]
 atlas = ExtResource("1_guard_tex")

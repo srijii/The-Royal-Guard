@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://cfrrtbt38ggp2"]
+[gd_scene load_steps=2 format=3]
 
 [ext_resource type="Script" path="res://script/wander_controller.gd" id="1_lc4lg"]
 
