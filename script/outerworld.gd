@@ -318,17 +318,27 @@ func _create_health_hud() -> void:
 	_quest_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.24, 1.0))
 	hud_layer.add_child(_quest_label)
 
-	# --- Tutorial labels: bottom center ---
+	# --- Tutorial labels: bottom center with dark background ---
+	var tutorial_bg := ColorRect.new()
+	tutorial_bg.anchor_left = 0.5
+	tutorial_bg.anchor_top = 1.0
+	tutorial_bg.anchor_right = 0.5
+	tutorial_bg.anchor_bottom = 1.0
+	tutorial_bg.position = Vector2(-210, -138)
+	tutorial_bg.size = Vector2(420, 70)
+	tutorial_bg.color = Color(0.04, 0.04, 0.06, 0.7)
+	hud_layer.add_child(tutorial_bg)
+
 	_tutorial_attack_label = Label.new()
 	_tutorial_attack_label.anchor_left = 0.5
 	_tutorial_attack_label.anchor_top = 1.0
 	_tutorial_attack_label.anchor_right = 0.5
 	_tutorial_attack_label.anchor_bottom = 1.0
-	_tutorial_attack_label.position = Vector2(-200, -130)
+	_tutorial_attack_label.position = Vector2(-200, -133)
 	_tutorial_attack_label.size = Vector2(400, 18)
 	_tutorial_attack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tutorial_attack_label.add_theme_font_size_override("font_size", 12)
-	_tutorial_attack_label.add_theme_color_override("font_color", Color(0.82, 0.90, 1.0, 1.0))
+	_tutorial_attack_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 	hud_layer.add_child(_tutorial_attack_label)
 
 	_tutorial_potions_label = Label.new()
@@ -336,11 +346,11 @@ func _create_health_hud() -> void:
 	_tutorial_potions_label.anchor_top = 1.0
 	_tutorial_potions_label.anchor_right = 0.5
 	_tutorial_potions_label.anchor_bottom = 1.0
-	_tutorial_potions_label.position = Vector2(-200, -112)
+	_tutorial_potions_label.position = Vector2(-200, -115)
 	_tutorial_potions_label.size = Vector2(400, 18)
 	_tutorial_potions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tutorial_potions_label.add_theme_font_size_override("font_size", 12)
-	_tutorial_potions_label.add_theme_color_override("font_color", Color(0.82, 0.90, 1.0, 1.0))
+	_tutorial_potions_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 	hud_layer.add_child(_tutorial_potions_label)
 
 	_tutorial_sprint_label = Label.new()
@@ -348,11 +358,11 @@ func _create_health_hud() -> void:
 	_tutorial_sprint_label.anchor_top = 1.0
 	_tutorial_sprint_label.anchor_right = 0.5
 	_tutorial_sprint_label.anchor_bottom = 1.0
-	_tutorial_sprint_label.position = Vector2(-200, -94)
+	_tutorial_sprint_label.position = Vector2(-200, -97)
 	_tutorial_sprint_label.size = Vector2(400, 18)
 	_tutorial_sprint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_tutorial_sprint_label.add_theme_font_size_override("font_size", 12)
-	_tutorial_sprint_label.add_theme_color_override("font_color", Color(0.82, 0.90, 1.0, 1.0))
+	_tutorial_sprint_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
 	hud_layer.add_child(_tutorial_sprint_label)
 
 	_refresh_tutorial_labels()

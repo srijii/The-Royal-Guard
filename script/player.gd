@@ -77,10 +77,10 @@ func get_health_percent() -> float:
 func _ensure_potion_input_actions() -> void:
 	_ensure_action_key("attack", KEY_CTRL)
 	_ensure_action_key("sprint", KEY_SHIFT)
-	_set_action_key("hold_map_zoom", KEY_M)
-	_set_action_key("use_health_potion", KEY_SPACE)
-	_set_action_key("use_strength_potion", KEY_J)
-	_set_action_key("use_energy_drink", KEY_K)
+	_ensure_action_key("hold_map_zoom", KEY_M)
+	_ensure_action_key("use_health_potion", KEY_SPACE)
+	_ensure_action_key("use_strength_potion", KEY_J)
+	_ensure_action_key("use_energy_drink", KEY_K)
 
 
 func _ensure_action_key(action_name: String, default_keycode: Key) -> void:
@@ -165,6 +165,7 @@ var _mobile_joystick_radius := 62.0
 var _mobile_move_vector := Vector2.ZERO
 var _mobile_attack_pressed := false
 var _mobile_sprint_pressed := false
+var _mobile_map_pressed := false
 
 
 func is_attacking() -> bool:
@@ -519,7 +520,7 @@ func _update_camera_hold_zoom(delta: float) -> void:
 	if cam == null:
 		return
 
-	var hold_zoom := _map_unlocked and Input.is_action_pressed("hold_map_zoom")
+	var hold_zoom := _map_unlocked and (Input.is_action_pressed("hold_map_zoom") or _mobile_map_pressed)
 	var target_zoom := zoom_out_on_hold if hold_zoom else _camera_normal_zoom
 	cam.zoom = cam.zoom.lerp(target_zoom, clampf(zoom_lerp_speed * delta, 0.0, 1.0))
 
@@ -886,34 +887,67 @@ func _setup_mobile_controls_if_enabled() -> void:
 	_mobile_joystick_knob.z_index = 201
 	_mobile_layer.add_child(_mobile_joystick_knob)
 
-	_create_mobile_action_button("ATK", Vector2(viewport_size.x - 92.0, viewport_size.y - 106.0), func() -> void:
+	_create_mobile_action_button("Attack", Vector2(viewport_size.x - 84.0, viewport_size.y - 100.0), func() -> void:
 		_mobile_attack_pressed = true
 	, func() -> void:
 		_mobile_attack_pressed = false
 	)
 
-	_create_mobile_action_button("RUN", Vector2(viewport_size.x - 178.0, viewport_size.y - 154.0), func() -> void:
+	_create_mobile_action_button("Sprint", Vector2(viewport_size.x - 170.0, viewport_size.y - 154.0), func() -> void:
 		_mobile_sprint_pressed = true
 	, func() -> void:
 		_mobile_sprint_pressed = false
 	)
 
-	_create_mobile_tap_button("REG", Vector2(viewport_size.x - 250.0, viewport_size.y - 86.0), Callable(self, "_use_health_potion"))
-	_create_mobile_tap_button("STR", Vector2(viewport_size.x - 316.0, viewport_size.y - 132.0), Callable(self, "_use_strength_potion"))
-	_create_mobile_tap_button("ENG", Vector2(viewport_size.x - 250.0, viewport_size.y - 178.0), Callable(self, "_use_energy_drink"))
+	_create_mobile_action_button("Map", Vector2(viewport_size.x - 84.0, viewport_size.y - 212.0), func() -> void:
+		_mobile_map_pressed = true
+	, func() -> void:
+		_mobile_map_pressed = false
+	)
+
+	_create_mobile_tap_button("Heal", Vector2(viewport_size.x - 252.0, viewport_size.y - 86.0), Callable(self, "_use_health_potion"))
+	_create_mobile_tap_button("Str", Vector2(viewport_size.x - 322.0, viewport_size.y - 132.0), Callable(self, "_use_strength_potion"))
+	_create_mobile_tap_button("Eng", Vector2(viewport_size.x - 252.0, viewport_size.y - 178.0), Callable(self, "_use_energy_drink"))
 
 
 func _create_mobile_action_button(label_text: String, center_pos: Vector2, on_press: Callable, on_release: Callable) -> void:
 	if _mobile_layer == null:
 		return
+
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = Color(0.08, 0.10, 0.18, 0.92)
+	btn_style.border_color = Color(0.78, 0.60, 0.24, 0.6)
+	btn_style.border_width_left = 1
+	btn_style.border_width_top = 1
+	btn_style.border_width_right = 1
+	btn_style.border_width_bottom = 1
+	btn_style.corner_radius_top_left = 8
+	btn_style.corner_radius_top_right = 8
+	btn_style.corner_radius_bottom_left = 8
+	btn_style.corner_radius_bottom_right = 8
+
+	var btn_hover := btn_style.duplicate()
+	btn_hover.bg_color = Color(0.12, 0.16, 0.28, 0.95)
+	btn_hover.border_color = Color(0.90, 0.72, 0.35, 0.8)
+
+	var btn_pressed := btn_style.duplicate()
+	btn_pressed.bg_color = Color(0.06, 0.08, 0.14, 0.95)
+	btn_pressed.border_color = Color(0.60, 0.45, 0.18, 0.8)
+
+	var theme := Theme.new()
+	theme.set_stylebox("normal", "Button", btn_style)
+	theme.set_stylebox("hover", "Button", btn_hover)
+	theme.set_stylebox("pressed", "Button", btn_pressed)
+	theme.set_color("font_color", "Button", Color(0.95, 0.82, 0.50, 1.0))
+	theme.set_color("font_hover_color", "Button", Color(1.0, 0.95, 0.85, 1.0))
+	theme.set_color("font_pressed_color", "Button", Color(0.85, 0.72, 0.40, 1.0))
+
 	var button := Button.new()
+	button.theme = theme
 	button.text = label_text
-	button.custom_minimum_size = Vector2(64, 64)
+	button.custom_minimum_size = Vector2(68, 60)
 	button.position = center_pos - button.custom_minimum_size * 0.5
-	button.modulate = Color(0.10, 0.12, 0.18, 0.96)
-	button.add_theme_color_override("font_color", Color(0.95, 0.98, 1.0, 1.0))
-	button.add_theme_color_override("font_hover_color", Color(1.0, 1.0, 1.0, 1.0))
-	button.add_theme_font_size_override("font_size", 17)
+	button.add_theme_font_size_override("font_size", 13)
 	button.z_index = 210
 	button.pressed.connect(on_press)
 	button.button_up.connect(on_release)
@@ -923,13 +957,41 @@ func _create_mobile_action_button(label_text: String, center_pos: Vector2, on_pr
 func _create_mobile_tap_button(label_text: String, center_pos: Vector2, on_tap: Callable) -> void:
 	if _mobile_layer == null:
 		return
+
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = Color(0.07, 0.09, 0.16, 0.90)
+	btn_style.border_color = Color(0.78, 0.60, 0.24, 0.5)
+	btn_style.border_width_left = 1
+	btn_style.border_width_top = 1
+	btn_style.border_width_right = 1
+	btn_style.border_width_bottom = 1
+	btn_style.corner_radius_top_left = 6
+	btn_style.corner_radius_top_right = 6
+	btn_style.corner_radius_bottom_left = 6
+	btn_style.corner_radius_bottom_right = 6
+
+	var btn_hover := btn_style.duplicate()
+	btn_hover.bg_color = Color(0.12, 0.16, 0.28, 0.93)
+	btn_hover.border_color = Color(0.90, 0.72, 0.35, 0.7)
+
+	var btn_pressed := btn_style.duplicate()
+	btn_pressed.bg_color = Color(0.05, 0.07, 0.12, 0.93)
+	btn_pressed.border_color = Color(0.60, 0.45, 0.18, 0.7)
+
+	var theme := Theme.new()
+	theme.set_stylebox("normal", "Button", btn_style)
+	theme.set_stylebox("hover", "Button", btn_hover)
+	theme.set_stylebox("pressed", "Button", btn_pressed)
+	theme.set_color("font_color", "Button", Color(0.91, 0.86, 0.75, 1.0))
+	theme.set_color("font_hover_color", "Button", Color(1.0, 0.95, 0.85, 1.0))
+	theme.set_color("font_pressed_color", "Button", Color(0.85, 0.72, 0.40, 1.0))
+
 	var button := Button.new()
+	button.theme = theme
 	button.text = label_text
 	button.custom_minimum_size = Vector2(56, 44)
 	button.position = center_pos - button.custom_minimum_size * 0.5
-	button.modulate = Color(0.12, 0.14, 0.20, 0.96)
-	button.add_theme_color_override("font_color", Color(0.95, 0.98, 1.0, 1.0))
-	button.add_theme_font_size_override("font_size", 14)
+	button.add_theme_font_size_override("font_size", 13)
 	button.z_index = 210
 	button.pressed.connect(on_tap)
 	_mobile_layer.add_child(button)
