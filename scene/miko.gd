@@ -2,7 +2,6 @@ extends CharacterBody2D
 
 signal queen_ring_collected
 
-# Finite state machine for Wizard AI.
 enum State {
 	WANDER,
 	ANGRY,
@@ -10,25 +9,43 @@ enum State {
 }
 
 @export var wander_radius: float = 96.0
-@export var detection_radius: float = 180.0
-@export var attack_range: float = 24.0
-@export var move_speed_min: float = 62.0
-@export var move_speed_max: float = 78.0
-@export var attack_cooldown_min: float = 0.3
-@export var attack_damage: int = 24
-@export var attack_cooldown_max: float = 0.3
-@export var attack_anim_time: float = 0.18
-@export var knockback_force_taken: float = 520.0
+@export var detection_radius: float = 350.0
+@export var attack_range: float = 100.0
+@export var move_speed_min: float = 130.0
+@export var move_speed_max: float = 160.0
+@export var attack_cooldown_min: float = 0.8
+@export var attack_cooldown_max: float = 1.2
+@export var attack_damage: int = 45
+@export var attack_anim_time: float = 0.20
 @export var attack_anim_fps: float = 7.0
-@export var player_memory_time: float = 2.5
+@export var health: int = 800
+@export var knockback_force_taken: float = 800.0
+@export var knockback_decay: float = 1000.0
+@export var player_knockback_force: float = 600.0
+@export var player_memory_time: float = 5.0
 @export var idle_wait_min: float = 1.0
 @export var idle_wait_max: float = 3.0
 @export var avoid_turn_strength: float = 0.65
 @export var stop_delay_time: float = 0.3
-@export var float_horizontal_amplitude: float = 5.0
-@export var float_vertical_amplitude: float = 9.0
-@export var float_speed: float = 2.2
-@export var knockback_decay: float = 520.0
+@export var wander_unstuck_seconds: float = 0.5
+@export var wander_phase_seconds: float = 0.35
+@export var float_horizontal_amplitude: float = 6.0
+@export var float_vertical_amplitude: float = 11.0
+@export var float_speed: float = 2.8
+
+@export var teleport_cooldown: float = 5.0
+@export var teleport_distance_min: float = 80.0
+@export var teleport_distance_max: float = 200.0
+@export var teleport_near_hp_trigger: float = 0.3
+
+@export var regen_amount: int = 25
+@export var regen_cooldown: float = 8.0
+
+@export var invisibility_duration: float = 2.5
+@export var invisibility_cooldown: float = 15.0
+
+@export var slow_duration: float = 3.0
+@export var slow_strength: float = 0.4
 
 var spawn_position: Vector2
 var current_state: State = State.WANDER
@@ -39,7 +56,8 @@ var last_direction: String = "s"
 var move_speed: float = 120.0
 var attack_cooldown: float = 0.25
 var current_health: int = health
-@export var health: int = 260
+
+var _attack_hit_done := false
 var _wander_idle_time_left: float = 0.0
 var _player_memory_left: float = 0.0
 var _attack_cooldown_left: float = 0.0
@@ -52,6 +70,19 @@ var _health_bar_control: Control = null
 var _health_bar_base_position: Vector2 = Vector2.ZERO
 var _drop_spawned := false
 var _defeated := false
+
+var _teleport_cooldown_left: float = 0.0
+var _regen_cooldown_left: float = 0.0
+var _invisibility_cooldown_left: float = 0.0
+var _invisibility_active: bool = false
+var _invisibility_timer_left: float = 0.0
+
+var _wander_stuck_time := 0.0
+var _phase_time_left := 0.0
+var _base_collision_layer := 0
+var _base_collision_mask := 0
+
+var _slow_debuff_active_on_player: bool = false
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var front_ray: RayCast2D = $"RayCast2D"
@@ -69,7 +100,7 @@ func _ready() -> void:
 	spawn_position = global_position
 	target_position = spawn_position
 	_choose_new_wander_target()
-	# Randomize base stats from ranges.
+
 	move_speed = randf_range(move_speed_min, move_speed_max)
 	attack_cooldown = randf_range(attack_cooldown_min, attack_cooldown_max)
 	current_health = health
@@ -79,16 +110,14 @@ func _ready() -> void:
 	if _health_bar_node is Control:
 		_health_bar_control = _health_bar_node as Control
 		_health_bar_base_position = _health_bar_control.position
-	
-	# Area signals are optional for behavior, but useful for quick target acquisition.
+
 	detection_area.body_entered.connect(_on_detection_body_entered)
 	detection_area.body_exited.connect(_on_detection_body_exited)
 	attack_area.body_entered.connect(_on_attack_body_entered)
 	attack_area.body_exited.connect(_on_attack_body_exited)
 	attack_timer.timeout.connect(_on_attack_cooldown_timeout)
 	attack_timer.one_shot = true
-	
-	# Match Area2D radii with exported gameplay values.
+
 	_set_area_radii()
 	_configure_attack_animation_fps()
 
@@ -96,10 +125,21 @@ func _ready() -> void:
 		_sprite_base_position = animated_sprite.position
 		_float_phase = randf() * TAU
 
+	_base_collision_layer = collision_layer
+	_base_collision_mask = collision_mask
+
+	_log_action("awakened with the ring")
+
+
+func _log_action(action: String) -> void:
+	print("miko " + action + " with the ring")
+
 
 func _physics_process(delta: float) -> void:
 	if _defeated:
 		velocity = Vector2.ZERO
+		return
+	if not is_inside_tree():
 		return
 
 	if _attack_cooldown_left > 0.0:
@@ -111,24 +151,258 @@ func _physics_process(delta: float) -> void:
 	if _combat_knockback_velocity.length() > 0.01:
 		_combat_knockback_velocity = _combat_knockback_velocity.move_toward(Vector2.ZERO, knockback_decay * delta)
 
+	if _teleport_cooldown_left > 0.0:
+		_teleport_cooldown_left = maxf(0.0, _teleport_cooldown_left - delta)
+	if _regen_cooldown_left > 0.0:
+		_regen_cooldown_left = maxf(0.0, _regen_cooldown_left - delta)
+	if _invisibility_cooldown_left > 0.0:
+		_invisibility_cooldown_left = maxf(0.0, _invisibility_cooldown_left - delta)
+	if _invisibility_active:
+		_invisibility_timer_left = maxf(0.0, _invisibility_timer_left - delta)
+		if _invisibility_timer_left <= 0.0:
+			_deactivate_invisibility()
+
 	_refresh_player_reference()
 	_update_player_memory(delta)
 	_update_state()
-	
-	match current_state:
-		State.ATTACK:
-			_process_attack_state(delta)
-		State.ANGRY:
-			_process_angry_state(delta)
-		State.WANDER:
-			_process_wander_state(delta)
+
+	if not _invisibility_active:
+		match current_state:
+			State.ATTACK:
+				_process_attack_state(delta)
+			State.ANGRY:
+				_process_angry_state(delta)
+			State.WANDER:
+				_process_wander_state(delta)
+	else:
+		velocity = Vector2.ZERO
 
 	velocity += _combat_knockback_velocity
-	
+
 	if is_inside_tree():
+		var moved_distance := _get_moved_distance(velocity, delta)
 		move_and_slide()
+		_update_wander_unstuck(delta, moved_distance)
 	_handle_collision_reroute()
-	_update_floating_effect(delta)
+	if not _invisibility_active:
+		_update_floating_effect(delta)
+
+	_try_teleport(delta)
+	_try_regen(delta)
+	_try_invisibility(delta)
+
+
+func _try_teleport(_delta: float) -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	if _teleport_cooldown_left > 0.0:
+		return
+	if current_state == State.WANDER:
+		return
+
+	_teleport_cooldown_left = teleport_cooldown
+
+	var hp_ratio := float(current_health) / float(max(health, 1))
+	var dist_min := teleport_distance_min
+	var dist_max := teleport_distance_max
+	if hp_ratio < teleport_near_hp_trigger:
+		dist_min = teleport_distance_min * 0.5
+		dist_max = teleport_distance_max * 0.7
+		_teleport_cooldown_left = teleport_cooldown * 0.6
+
+	var angle := randf() * TAU
+	var dist := randf_range(dist_min, dist_max)
+	var offset := Vector2.RIGHT.rotated(angle) * dist
+	var teleport_pos := player.global_position + offset
+
+	var space_state := get_world_2d().direct_space_state
+	var query := PhysicsRayQueryParameters2D.create(global_position, teleport_pos)
+	query.exclude = [self]
+	var result := space_state.intersect_ray(query)
+	if result:
+		teleport_pos = result.position - offset.normalized() * 20.0
+
+	global_position = teleport_pos
+	_spawn_teleport_effect()
+	_log_action("teleported with the ring")
+
+
+func _spawn_teleport_effect() -> void:
+	if not is_inside_tree():
+		return
+	var fx_root := get_tree().current_scene
+	if fx_root == null:
+		fx_root = get_tree().root
+
+	var ring := Polygon2D.new()
+	ring.polygon = _build_circle_polygon(12, 10.0)
+	ring.color = Color(0.85, 0.3, 0.95, 0.7)
+	ring.global_position = global_position
+	fx_root.add_child(ring)
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(ring, "scale", Vector2(2.5, 2.5), 0.3)
+	tween.tween_property(ring, "modulate:a", 0.0, 0.3)
+	tween.finished.connect(func() -> void:
+		if is_instance_valid(ring):
+			ring.queue_free()
+	)
+
+
+func _build_circle_polygon(sides: int, radius: float) -> PackedVector2Array:
+	var pts := PackedVector2Array()
+	for i in range(sides):
+		var a := float(i) / float(sides) * TAU
+		pts.append(Vector2(cos(a), sin(a)) * radius)
+	return pts
+
+
+func _try_regen(_delta: float) -> void:
+	if _regen_cooldown_left > 0.0:
+		return
+	if current_health >= health:
+		return
+
+	_regen_cooldown_left = regen_cooldown
+	current_health = mini(current_health + regen_amount, health)
+	_refresh_health_bar()
+	_spawn_regen_effect()
+	_log_action("regenerated with the ring")
+
+
+func _spawn_regen_effect() -> void:
+	if not is_inside_tree():
+		return
+	var fx_root := get_tree().current_scene
+	if fx_root == null:
+		fx_root = get_tree().root
+
+	for i in range(4):
+		var spark := Polygon2D.new()
+		spark.polygon = _build_circle_polygon(6, 3.0)
+		spark.color = Color(0.3, 0.95, 0.5, 0.9)
+		spark.global_position = global_position + Vector2(randf_range(-15, 15), randf_range(-15, 15))
+		fx_root.add_child(spark)
+
+		var tween := create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(spark, "global_position", spark.global_position + Vector2(randf_range(-20, 20), randf_range(-20, 20)), 0.4)
+		tween.tween_property(spark, "modulate:a", 0.0, 0.4)
+		tween.tween_property(spark, "scale", Vector2(2.0, 2.0), 0.4)
+		tween.finished.connect(func() -> void:
+			if is_instance_valid(spark):
+				spark.queue_free()
+		)
+
+
+func _try_invisibility(_delta: float) -> void:
+	if _invisibility_active:
+		return
+	if _invisibility_cooldown_left > 0.0:
+		return
+	if current_state == State.WANDER:
+		return
+
+	var hp_ratio := float(current_health) / float(max(health, 1))
+	if hp_ratio > 0.5:
+		return
+
+	_activate_invisibility()
+
+
+func _activate_invisibility() -> void:
+	_invisibility_active = true
+	_invisibility_timer_left = invisibility_duration
+	_invisibility_cooldown_left = invisibility_cooldown
+
+	if animated_sprite != null:
+		animated_sprite.modulate = Color(1, 1, 1, 0.25)
+		animated_sprite.material = null
+
+	_spawn_teleport_effect()
+
+	var angle := randf() * TAU
+	var dist := randf_range(100.0, 250.0)
+	var offset := Vector2.RIGHT.rotated(angle) * dist
+	if player != null and is_instance_valid(player):
+		global_position = player.global_position + offset
+
+	_log_action("became invisible with the ring")
+
+
+func _deactivate_invisibility() -> void:
+	_invisibility_active = false
+	if animated_sprite != null:
+		animated_sprite.modulate = Color(1, 1, 1, 1.0)
+
+	_spawn_teleport_effect()
+
+	if player != null and is_instance_valid(player):
+		var teleport_pos := player.global_position + Vector2(randf_range(-100, 100), randf_range(-100, 100))
+		global_position = teleport_pos
+
+	_log_action("reappeared with the ring")
+
+
+func _apply_slow_to_player() -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	if not player.has_method("apply_skeleton_slow"):
+		return
+	player.call("apply_skeleton_slow", slow_duration, slow_strength)
+	_slow_debuff_active_on_player = true
+	_log_action("slowed the enemy with the ring")
+
+
+func _get_moved_distance(velocity_vec: Vector2, delta: float) -> float:
+	return velocity_vec.length() * delta
+
+
+func _update_wander_unstuck(delta: float, moved_distance: float) -> void:
+	if current_state != State.WANDER:
+		_wander_stuck_time = 0.0
+		_phase_time_left = 0.0
+		_set_collision_phase(false)
+		return
+
+	if _phase_time_left > 0.0:
+		_phase_time_left = maxf(0.0, _phase_time_left - delta)
+		if _phase_time_left <= 0.0:
+			_set_collision_phase(false)
+
+	if _wander_idle_time_left > 0.0 or _stop_delay_left > 0.0:
+		_wander_stuck_time = 0.0
+		return
+
+	var trying_to_move := velocity.length() > 12.0
+	if trying_to_move and moved_distance < 0.8:
+		_wander_stuck_time += delta
+	else:
+		_wander_stuck_time = 0.0
+
+	if _wander_stuck_time < wander_unstuck_seconds:
+		return
+
+	_wander_stuck_time = 0.0
+	_phase_time_left = maxf(0.05, wander_phase_seconds)
+	_set_collision_phase(true)
+	_choose_new_wander_target()
+	var to_target := target_position - global_position
+	if to_target.length() > 0.01:
+		velocity = to_target.normalized() * move_speed
+		_update_direction_from_vector(velocity)
+	_play_walk_animation()
+
+
+func _set_collision_phase(enabled: bool) -> void:
+	if enabled:
+		collision_layer = 0
+		collision_mask = 0
+		return
+
+	collision_layer = _base_collision_layer
+	collision_mask = _base_collision_mask
 
 
 func _update_floating_effect(delta: float) -> void:
@@ -138,12 +412,10 @@ func _update_floating_effect(delta: float) -> void:
 	_float_phase += delta * float_speed
 	var x_offset := cos(_float_phase) * float_horizontal_amplitude
 	var y_offset := sin(_float_phase) * float_vertical_amplitude
-	# Add a subtle second harmonic for a more magical hover feel.
 	y_offset += sin(_float_phase * 2.0) * 1.6
 	var float_offset := Vector2(x_offset, y_offset)
 	animated_sprite.position = _sprite_base_position + float_offset
 
-	# Keep health bar floating in sync with the warden.
 	if _health_bar_control != null:
 		_health_bar_control.position = _health_bar_base_position + float_offset
 
@@ -152,11 +424,9 @@ func _handle_collision_reroute() -> void:
 	if get_slide_collision_count() <= 0:
 		return
 
-	# In ATTACK we intentionally hold position; don't reroute there.
 	if current_state == State.ATTACK:
 		return
 
-	# Use collision normal to turn away from obstacle quickly.
 	var collision := get_slide_collision(0)
 	if collision == null:
 		return
@@ -168,7 +438,6 @@ func _handle_collision_reroute() -> void:
 	var away_dir := normal.normalized()
 
 	if current_state == State.WANDER:
-		# Pick a new nearby target away from the obstacle.
 		var reroute_dist := randf_range(wander_radius * 0.25, wander_radius * 0.6)
 		target_position = global_position + away_dir * reroute_dist
 		_wander_idle_time_left = 0.0
@@ -176,7 +445,6 @@ func _handle_collision_reroute() -> void:
 		_update_direction_from_vector(velocity)
 		_play_walk_animation()
 	elif current_state == State.ANGRY:
-		# Keep chase behavior but instantly steer away from the blocking surface.
 		velocity = away_dir * move_speed
 		_update_direction_from_vector(velocity)
 		_play_walk_animation()
@@ -201,7 +469,6 @@ func _refresh_player_reference() -> void:
 			player = body as Node2D
 			return
 
-	# Fallbacks for common setups.
 	var group_players := get_tree().get_nodes_in_group("player")
 	if group_players.size() > 0:
 		player = group_players[0] as Node2D
@@ -220,7 +487,6 @@ func _update_player_memory(delta: float) -> void:
 
 
 func _update_state() -> void:
-	# Priority: ATTACK > ANGRY > WANDER
 	if _can_attack_player():
 		current_state = State.ATTACK
 		return
@@ -250,7 +516,6 @@ func _process_wander_state(delta: float) -> void:
 		_stop_delay_left = stop_delay_time
 		return
 
-	# Don't resume movement until stop delay expires.
 	if _stop_delay_left > 0.0:
 		velocity = Vector2.ZERO
 		_play_idle_animation()
@@ -276,7 +541,6 @@ func _process_angry_state(delta: float) -> void:
 		_stop_delay_left = stop_delay_time
 		return
 
-	# Don't chase until stop delay expires.
 	if _stop_delay_left > 0.0:
 		velocity = Vector2.ZERO
 		_play_idle_animation()
@@ -303,29 +567,30 @@ func _process_attack_state(_delta: float) -> void:
 	if to_player.length() > 0.001:
 		_update_direction_from_vector(to_player.normalized())
 
+	if _attack_anim_left > 0.0:
+		_play_attack_animation(false)
+		_try_apply_attack_on_last_frame()
+		return
+
 	var in_attack_window := _player_in_attack_range() and _has_line_of_sight_to_player()
 	if in_attack_window:
-		if _attack_anim_left > 0.0:
-			_play_attack_animation(false)
-		else:
-			_play_idle_animation()
+		_play_idle_animation()
 		if _attack_cooldown_left <= 0.0 and _attack_anim_left <= 0.0:
 			_perform_attack()
 	else:
-		# Safety fallback; normally state priority should switch out of ATTACK.
 		_play_idle_animation()
 
 
 func _perform_attack() -> void:
 	_attack_cooldown_left = attack_cooldown
 	_attack_anim_left = _get_attack_cycle_duration(last_direction)
+	_attack_hit_done = false
 	attack_timer.start(attack_cooldown)
 	_play_attack_animation(true)
 
 	if player == null or not is_instance_valid(player):
 		return
 
-	# Delay the actual sweep impact so visuals and hit timing feel synchronized.
 	var sweep_timer := create_tween()
 	sweep_timer.tween_callback(func() -> void:
 		if player == null or not is_instance_valid(player):
@@ -336,7 +601,52 @@ func _perform_attack() -> void:
 		if player.has_method("take_damage"):
 			player.call("take_damage", attack_damage)
 		if player.has_method("apply_combat_knockback"):
-			player.call("apply_combat_knockback", global_position, 430.0)
+			player.call("apply_combat_knockback", global_position, player_knockback_force)
+		_apply_slow_to_player()
+		_log_action("attacked with the ring")
+	).set_delay(0.15)
+
+
+func _try_apply_attack_on_last_frame() -> void:
+	if _attack_hit_done:
+		return
+	if animated_sprite == null or animated_sprite.sprite_frames == null:
+		return
+
+	var anim_name: String = String(animated_sprite.animation)
+	if not anim_name.begins_with("atk-"):
+		return
+	if not animated_sprite.sprite_frames.has_animation(anim_name):
+		return
+
+	var frame_count := animated_sprite.sprite_frames.get_frame_count(anim_name)
+	if frame_count <= 0:
+		return
+
+	if animated_sprite.frame >= frame_count - 1:
+		_attack_hit_done = true
+		_apply_attack_hit_effects()
+
+
+func _apply_attack_hit_effects() -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	if not _player_in_attack_range() or not _has_line_of_sight_to_player():
+		return
+
+	var damage_timer := create_tween()
+	damage_timer.tween_callback(func() -> void:
+		if player == null or not is_instance_valid(player):
+			return
+		if not _player_in_attack_range() or not _has_line_of_sight_to_player():
+			return
+		_spawn_shockwave(player.global_position)
+		if player.has_method("take_damage"):
+			player.call("take_damage", attack_damage)
+		if player.has_method("apply_combat_knockback"):
+			player.call("apply_combat_knockback", global_position, player_knockback_force)
+		_apply_slow_to_player()
+		_log_action("attacked with the ring")
 	).set_delay(0.2)
 
 
@@ -370,36 +680,39 @@ func _get_attack_cycle_duration(dir: String) -> float:
 	return float(frames) / fps
 
 
-func _spawn_shockwave(_shockwave_target: Vector2) -> void:
+func _spawn_shockwave(shockwave_target: Vector2) -> void:
+	if not is_inside_tree():
+		return
 	var fx_root := get_tree().current_scene
 	if fx_root == null:
 		fx_root = get_tree().root
 
 	var pulse := Polygon2D.new()
 	pulse.polygon = PackedVector2Array([
-		Vector2(0.0, -7.0),
-		Vector2(12.0, 0.0),
-		Vector2(0.0, 7.0),
-		Vector2(-12.0, 0.0)
+		Vector2(0.0, -10.0),
+		Vector2(16.0, 0.0),
+		Vector2(0.0, 10.0),
+		Vector2(-16.0, 0.0)
 	])
-	pulse.color = Color(0.6, 0.9, 0.7, 0.95)
+	pulse.color = Color(0.9, 0.2, 0.5, 0.95)
 	pulse.global_position = global_position
 	fx_root.add_child(pulse)
 
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(pulse, "global_position", target_position, 0.20)
-	tween.tween_property(pulse, "scale", Vector2(1.8, 1.8), 0.20).from(Vector2.ONE)
-	tween.tween_property(pulse, "modulate:a", 0.0, 0.20)
+	tween.tween_property(pulse, "global_position", shockwave_target, 0.22)
+	tween.tween_property(pulse, "scale", Vector2(2.6, 2.6), 0.22).from(Vector2.ONE)
+	tween.tween_property(pulse, "modulate:a", 0.0, 0.22)
 	tween.finished.connect(func() -> void:
 		if is_instance_valid(pulse):
 			pulse.queue_free()
 	)
 
+	_log_action("cast a shockwave with the ring")
+
 
 func _choose_new_wander_target() -> void:
 	var random_angle := randf() * TAU
-	# Pick nearby destinations so idle/wander stays local.
 	var random_dist := randf_range(wander_radius * 0.25, wander_radius)
 	var offset := Vector2.RIGHT.rotated(random_angle) * random_dist
 	target_position = global_position + offset
@@ -419,7 +732,6 @@ func _avoid_obstacles(base_dir: Vector2) -> Vector2:
 	if not front_blocked:
 		return move_dir
 
-	# If front is blocked, prefer side with no collision; else rotate away.
 	var left_blocked := left_ray.is_colliding()
 	var right_blocked := right_ray.is_colliding()
 	if left_blocked and not right_blocked:
@@ -431,7 +743,6 @@ func _avoid_obstacles(base_dir: Vector2) -> Vector2:
 	if not right_blocked:
 		return move_dir.rotated(deg_to_rad(45.0 * avoid_turn_strength))
 
-	# All blocked, briefly back off.
 	return -move_dir
 
 
@@ -528,7 +839,6 @@ func _play_directional_with_fallback(prefix: String, dir: String, force_restart 
 				animated_sprite.play(anim_name)
 			return
 
-	# Absolute last fallback.
 	var hard_fallback := prefix + "-s"
 	if animated_sprite.sprite_frames.has_animation(hard_fallback):
 		if force_restart or animated_sprite.animation != hard_fallback or not animated_sprite.is_playing():
@@ -562,7 +872,6 @@ func _play_if_exists(anim_name: String) -> void:
 		if animated_sprite.animation != anim_name:
 			animated_sprite.play(anim_name)
 	else:
-		# Fallback to south variants to avoid runtime errors if any animation is missing.
 		var fallback := "idle-s"
 		if anim_name.begins_with("walk-"):
 			fallback = "walk-s"
@@ -589,7 +898,6 @@ func _on_detection_body_entered(body: Node) -> void:
 
 func _on_detection_body_exited(body: Node) -> void:
 	if body == player:
-		# Keep memory timer running, then return to wander automatically.
 		_player_memory_left = player_memory_time
 
 
@@ -600,7 +908,6 @@ func _on_attack_body_entered(body: Node) -> void:
 
 func _on_attack_body_exited(body: Node) -> void:
 	if body == player:
-		# State logic will demote to angry/wander based on distance + memory.
 		pass
 
 
@@ -615,13 +922,17 @@ func take_damage(amount: int) -> void:
 	Helpers.spawn_blood_stain(global_position)
 	current_health = max(0, current_health - amount)
 	_refresh_health_bar()
+	_log_action("took damage with the ring")
 	if current_health <= 0:
 		_defeated = true
+		_log_action("was defeated with the ring")
 		_drop_ring_loot()
 		_enter_defeated_state()
 
 
 func _enter_defeated_state() -> void:
+	if _invisibility_active:
+		_deactivate_invisibility()
 	remove_from_group("enemy")
 	velocity = Vector2.ZERO
 	set_physics_process(false)
@@ -691,7 +1002,6 @@ func _drop_ring_loot() -> void:
 	root.add_child(pickup)
 	call_deferred("_check_ring_auto_collect", pickup)
 
-	# Small float animation to make pickup feel alive.
 	var tween := pickup.create_tween()
 	tween.set_loops()
 	tween.tween_property(pickup, "position:y", pickup.position.y - 5.0, 0.45)
@@ -730,7 +1040,6 @@ func _build_ring_drop_texture(tint: Color) -> Texture2D:
 			elif d2 < 24.0:
 				image.set_pixel(x, y, ring_inner)
 
-	# Gem highlight on top.
 	for y in range(2, 7):
 		for x in range(10, 14):
 			image.set_pixel(x, y, tint)
@@ -747,13 +1056,13 @@ func apply_combat_knockback(from_position: Vector2, force := knockback_force_tak
 
 
 func _resolve_health_bar_node() -> void:
-	# Supports user-added bars such as HealthBar/healthBar/WardenHealthBar,
-	# including TextureProgressBar while preserving existing textures/style.
 	var candidates := [
 		"HealthBar",
 		"healthBar",
 		"WardenHealthBar",
 		"WardenHP",
+		"MikoHealthBar",
+		"MikoHP",
 		"HPBar",
 	]
 	for path in candidates:

@@ -169,6 +169,8 @@ var _mobile_map_pressed := false
 
 var _mobile_btn_font: SystemFont = null
 var _mobile_btn_infos: Array[Dictionary] = []
+var _mobile_button_panels: Array[Panel] = []
+var _last_btn_opacity := -1.0
 
 
 func is_attacking() -> bool:
@@ -989,7 +991,12 @@ func _add_mobile_action_button(label_text: String, center_pos: Vector2, diameter
 	panel.position = center_pos - Vector2(half, half)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.z_index = 210
+	panel.set_meta("base_r", 0.08)
+	panel.set_meta("base_g", 0.10)
+	panel.set_meta("base_b", 0.18)
+	panel.set_meta("base_mult", 0.92)
 	_mobile_layer.add_child(panel)
+	_mobile_button_panels.append(panel)
 
 	var label := Label.new()
 	label.text = label_text
@@ -1009,6 +1016,8 @@ func _add_mobile_action_button(label_text: String, center_pos: Vector2, diameter
 		tap = Callable(),
 		touch_id = -1
 	})
+
+	_update_panel_opacity(panel, opacity)
 
 
 func _add_mobile_tap_button(label_text: String, center_pos: Vector2, diameter: float, opacity: float, on_tap: Callable) -> void:
@@ -1036,7 +1045,12 @@ func _add_mobile_tap_button(label_text: String, center_pos: Vector2, diameter: f
 	panel.position = center_pos - Vector2(half, half)
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	panel.z_index = 210
+	panel.set_meta("base_r", 0.07)
+	panel.set_meta("base_g", 0.09)
+	panel.set_meta("base_b", 0.16)
+	panel.set_meta("base_mult", 0.90)
 	_mobile_layer.add_child(panel)
+	_mobile_button_panels.append(panel)
 
 	var label := Label.new()
 	label.text = label_text
@@ -1056,6 +1070,31 @@ func _add_mobile_tap_button(label_text: String, center_pos: Vector2, diameter: f
 		tap = on_tap,
 		touch_id = -1
 	})
+
+	_update_panel_opacity(panel, opacity)
+
+
+func _update_panel_opacity(panel: Panel, opacity: float) -> void:
+	var style := panel.get_theme_stylebox("panel") as StyleBoxFlat
+	if not style:
+		return
+	var r := float(panel.get_meta("base_r"))
+	var g := float(panel.get_meta("base_g"))
+	var b := float(panel.get_meta("base_b"))
+	var mult := float(panel.get_meta("base_mult"))
+	style.bg_color = Color(r, g, b, mult * opacity)
+
+
+func update_mobile_button_opacity(opacity: float) -> void:
+	if _mobile_button_panels.is_empty():
+		return
+	_last_btn_opacity = opacity
+	for panel in _mobile_button_panels:
+		_update_panel_opacity(panel, opacity)
+	var cfg := ConfigFile.new()
+	if cfg.load(OPTIONS_PATH) == OK:
+		cfg.set_value("controls", "button_opacity", opacity)
+		cfg.save(OPTIONS_PATH)
 
 
 func _toggle_mobile_lamp() -> void:

@@ -8,25 +8,28 @@ enum State {
 }
 
 @export var wander_radius: float = 96.0
-@export var detection_radius: float = 180.0
-@export var attack_range: float = 24.0
-@export var move_speed_min: float = 62.0
-@export var move_speed_max: float = 78.0
-@export var attack_cooldown_min: float = 1.0
-@export var attack_cooldown_max: float = 1.0
-@export var attack_damage: int = 24
-@export var attack_anim_time: float = 0.50
-@export var health: int = 260
-@export var knockback_force_taken: float = 520.0
-@export var knockback_decay: float = 520.0
-@export var player_memory_time: float = 2.5
+@export var detection_radius: float = 300.0
+@export var attack_range: float = 160.0
+@export var move_speed_min: float = 90.0
+@export var move_speed_max: float = 110.0
+@export var attack_cooldown_min: float = 1.3
+@export var attack_cooldown_max: float = 1.8
+@export var attack_damage: int = 38
+@export var attack_anim_time: float = 0.45
+@export var health: int = 350
+@export var knockback_force_taken: float = 600.0
+@export var knockback_decay: float = 600.0
+@export var player_knockback_force: float = 500.0
+@export var player_memory_time: float = 4.0
 @export var idle_wait_min: float = 1.0
 @export var idle_wait_max: float = 3.0
 @export var avoid_turn_strength: float = 0.65
 @export var stop_delay_time: float = 0.3
-@export var float_horizontal_amplitude: float = 5.0
-@export var float_vertical_amplitude: float = 9.0
-@export var float_speed: float = 2.2
+@export var wander_unstuck_seconds: float = 0.6
+@export var wander_phase_seconds: float = 0.4
+@export var float_horizontal_amplitude: float = 6.0
+@export var float_vertical_amplitude: float = 11.0
+@export var float_speed: float = 2.8
 
 var spawn_position: Vector2
 var current_state: State = State.WANDER
@@ -48,6 +51,10 @@ var _sprite_base_position: Vector2 = Vector2.ZERO
 var _health_bar_control: Control = null
 var _health_bar_base_position: Vector2 = Vector2.ZERO
 var _drop_spawned := false
+var _wander_stuck_time := 0.0
+var _phase_time_left := 0.0
+var _base_collision_layer := 0
+var _base_collision_mask := 0
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var front_ray: RayCast2D = $"RayCast2D"
@@ -91,8 +98,13 @@ func _ready() -> void:
 		_sprite_base_position = animated_sprite.position
 		_float_phase = randf() * TAU
 
+	_base_collision_layer = collision_layer
+	_base_collision_mask = collision_mask
+
 
 func _physics_process(delta: float) -> void:
+	if not is_inside_tree():
+		return
 	if _attack_cooldown_left > 0.0:
 		_attack_cooldown_left = maxf(0.0, _attack_cooldown_left - delta)
 	if _attack_anim_left > 0.0:
@@ -117,7 +129,9 @@ func _physics_process(delta: float) -> void:
 	velocity += _combat_knockback_velocity
 	
 	if is_inside_tree():
+		var moved_distance := _get_moved_distance(velocity, delta)
 		move_and_slide()
+		_update_wander_unstuck(delta, moved_distance)
 	_handle_collision_reroute()
 	_update_floating_effect(delta)
 
@@ -171,6 +185,56 @@ func _handle_collision_reroute() -> void:
 		velocity = away_dir * move_speed
 		_update_direction_from_vector(velocity)
 		_play_walk_animation()
+
+
+func _get_moved_distance(velocity_vec: Vector2, delta: float) -> float:
+	return velocity_vec.length() * delta
+
+
+func _update_wander_unstuck(delta: float, moved_distance: float) -> void:
+	if current_state != State.WANDER:
+		_wander_stuck_time = 0.0
+		_phase_time_left = 0.0
+		_set_collision_phase(false)
+		return
+
+	if _phase_time_left > 0.0:
+		_phase_time_left = maxf(0.0, _phase_time_left - delta)
+		if _phase_time_left <= 0.0:
+			_set_collision_phase(false)
+
+	if _wander_idle_time_left > 0.0 or _stop_delay_left > 0.0:
+		_wander_stuck_time = 0.0
+		return
+
+	var trying_to_move := velocity.length() > 12.0
+	if trying_to_move and moved_distance < 0.8:
+		_wander_stuck_time += delta
+	else:
+		_wander_stuck_time = 0.0
+
+	if _wander_stuck_time < wander_unstuck_seconds:
+		return
+
+	_wander_stuck_time = 0.0
+	_phase_time_left = maxf(0.05, wander_phase_seconds)
+	_set_collision_phase(true)
+	_choose_new_wander_target()
+	var to_target := target_position - global_position
+	if to_target.length() > 0.01:
+		velocity = to_target.normalized() * move_speed
+		_update_direction_from_vector(velocity)
+		_play_walk_animation()
+
+
+func _set_collision_phase(enabled: bool) -> void:
+	if enabled:
+		collision_layer = 0
+		collision_mask = 0
+		return
+
+	collision_layer = _base_collision_layer
+	collision_mask = _base_collision_mask
 
 
 func _set_area_radii() -> void:
@@ -316,30 +380,32 @@ func _perform_attack() -> void:
 	if player.has_method("take_damage"):
 		player.call("take_damage", attack_damage)
 	if player.has_method("apply_combat_knockback"):
-		player.call("apply_combat_knockback", global_position, 430.0)
+		player.call("apply_combat_knockback", global_position, player_knockback_force)
 
 
-func _spawn_shockwave(_shockwave_target: Vector2) -> void:
+func _spawn_shockwave(shockwave_target: Vector2) -> void:
+	if not is_inside_tree():
+		return
 	var fx_root := get_tree().current_scene
 	if fx_root == null:
 		fx_root = get_tree().root
 
 	var pulse := Polygon2D.new()
 	pulse.polygon = PackedVector2Array([
-		Vector2(0.0, -7.0),
-		Vector2(12.0, 0.0),
-		Vector2(0.0, 7.0),
-		Vector2(-12.0, 0.0)
+		Vector2(0.0, -10.0),
+		Vector2(16.0, 0.0),
+		Vector2(0.0, 10.0),
+		Vector2(-16.0, 0.0)
 	])
-	pulse.color = Color(0.6, 0.9, 0.7, 0.95)
+	pulse.color = Color(0.75, 0.35, 0.95, 0.95)
 	pulse.global_position = global_position
 	fx_root.add_child(pulse)
 
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(pulse, "global_position", target_position, 0.20)
-	tween.tween_property(pulse, "scale", Vector2(1.8, 1.8), 0.20).from(Vector2.ONE)
-	tween.tween_property(pulse, "modulate:a", 0.0, 0.20)
+	tween.tween_property(pulse, "global_position", shockwave_target, 0.25)
+	tween.tween_property(pulse, "scale", Vector2(2.4, 2.4), 0.25).from(Vector2.ONE)
+	tween.tween_property(pulse, "modulate:a", 0.0, 0.25)
 	tween.finished.connect(func() -> void:
 		if is_instance_valid(pulse):
 			pulse.queue_free()
@@ -658,6 +724,8 @@ func _resolve_health_bar_node() -> void:
 		"healthBar",
 		"WardenHealthBar",
 		"WardenHP",
+		"WizardHealthBar",
+		"WizardHP",
 		"HPBar",
 	]
 	for path in candidates:

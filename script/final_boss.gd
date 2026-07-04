@@ -7,6 +7,8 @@ extends Node2D
 @export var boss_player_hearts := 10
 @export var respawn_delay_seconds := 1.0
 @export var end_fade_seconds := 1.8
+@export var potion_spawn_interval := 10.0
+@export var max_potions_per_type := 2
 
 var _player: Node2D = null
 var _player_hearts: Array[TextureRect] = []
@@ -93,6 +95,8 @@ func _configure_player_for_final_boss(player: Node2D) -> void:
 	var on_died := Callable(self, "_on_player_died")
 	if player.has_signal("died") and not player.is_connected("died", on_died):
 		player.connect("died", on_died)
+
+	_setup_potion_spawner()
 
 
 func _setup_life_ui() -> void:
@@ -444,3 +448,139 @@ func _create_ending_tween() -> Tween:
 	var tween := create_tween()
 	tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
 	return tween
+
+
+func _setup_potion_spawner() -> void:
+	var timer := Timer.new()
+	timer.name = "PotionSpawnTimer"
+	timer.wait_time = potion_spawn_interval
+	timer.one_shot = false
+	timer.timeout.connect(_spawn_arena_potion)
+	add_child(timer)
+	timer.start()
+
+
+func _spawn_arena_potion() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
+
+	var available_types := []
+	for ptype in ["health", "strength", "energy"]:
+		var count := 0
+		if _player.has_method("get_potion_count"):
+			count = int(_player.call("get_potion_count", ptype))
+		if count < max_potions_per_type:
+			available_types.append(ptype)
+
+	if available_types.is_empty():
+		return
+
+	available_types.shuffle()
+	var chosen_type := String(available_types[0])
+	var tint := _potion_color(chosen_type)
+
+	var miko := get_node_or_null("miko")
+	var spawn_pos := global_position
+	if miko != null:
+		spawn_pos = miko.global_position + Vector2(randf_range(-80, 80), randf_range(-80, 80))
+	else:
+		spawn_pos = global_position + Vector2(randf_range(100, 300), randf_range(100, 300))
+
+	_spawn_potion_at(chosen_type, tint, spawn_pos)
+
+
+func _spawn_potion_at(potion_type: String, tint: Color, position: Vector2) -> void:
+	var pickup := Area2D.new()
+	pickup.name = "ArenaPotionDrop"
+	pickup.global_position = position
+	pickup.monitoring = true
+	pickup.monitorable = true
+	pickup.z_as_relative = false
+	pickup.z_index = 100
+	pickup.y_sort_enabled = false
+
+	var shape := CollisionShape2D.new()
+	var circle := CircleShape2D.new()
+	circle.radius = 10.0
+	shape.shape = circle
+	pickup.add_child(shape)
+
+	var potion_sprite := Sprite2D.new()
+	potion_sprite.texture = _build_potion_drop_texture(tint)
+	potion_sprite.scale = Vector2(0.72, 0.72)
+	potion_sprite.z_as_relative = false
+	potion_sprite.z_index = 102
+	pickup.add_child(potion_sprite)
+
+	pickup.body_entered.connect(func(body: Node) -> void:
+		if body == null or not is_instance_valid(body):
+			return
+		if pickup == null or not is_instance_valid(pickup):
+			return
+		if body.has_method("add_potion_item"):
+			body.call("add_potion_item", potion_type)
+			pickup.queue_free()
+	)
+
+	add_child(pickup)
+	call_deferred("_check_potion_auto_collect", pickup, potion_type)
+
+	var tween := pickup.create_tween()
+	tween.set_loops()
+	tween.tween_property(pickup, "position:y", pickup.position.y - 5.0, 0.45)
+	tween.tween_property(pickup, "position:y", pickup.position.y + 5.0, 0.45)
+
+
+func _check_potion_auto_collect(pickup: Area2D, potion_type: String) -> void:
+	if pickup == null or not is_instance_valid(pickup):
+		return
+	await get_tree().physics_frame
+	if pickup == null or not is_instance_valid(pickup):
+		return
+	for body in pickup.get_overlapping_bodies():
+		if body != null and is_instance_valid(body) and body.has_method("add_potion_item"):
+			body.call("add_potion_item", potion_type)
+			pickup.queue_free()
+			return
+
+
+func _potion_color(potion_type: String) -> Color:
+	match potion_type:
+		"health":
+			return Color(0.95, 0.82, 0.16, 1.0)
+		"strength":
+			return Color(0.62, 0.26, 0.86, 1.0)
+		"energy":
+			return Color(0.22, 0.52, 0.98, 1.0)
+		_:
+			return Color(0.85, 0.85, 0.85, 1.0)
+
+
+func _build_potion_drop_texture(tint: Color) -> Texture2D:
+	var image := Image.create(24, 24, false, Image.FORMAT_RGBA8)
+	image.fill(Color(0.0, 0.0, 0.0, 0.0))
+
+	var body_color := tint
+	var highlight := Color(
+		minf(1.0, tint.r + 0.3),
+		minf(1.0, tint.g + 0.3),
+		minf(1.0, tint.b + 0.3),
+		tint.a
+	)
+
+	for y in range(4, 20):
+		for x in range(4, 20):
+			var dx := float(x) - 12.0
+			var dy := float(y) - 12.0
+			var d2 := dx * dx + dy * dy
+			if d2 <= 49.0 and d2 >= 16.0:
+				image.set_pixel(x, y, body_color)
+
+	for y in range(6, 12):
+		for x in range(8, 16):
+			var dx := float(x) - 12.0
+			var dy := float(y) - 7.0
+			if dx * dx + dy * dy <= 9.0:
+				image.set_pixel(x, y, highlight)
+
+	return ImageTexture.create_from_image(image)

@@ -558,12 +558,12 @@ animations = [{
 radius = 3.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_detect"]
-radius = 180.0
+radius = 350.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_attack"]
-radius = 18.0
+radius = 100.0
 
-[node name="warden" type="CharacterBody2D"]
+[node name="miko" type="CharacterBody2D"]
 scale = Vector2(0.6, 0.6)
 script = ExtResource("1_rgyw4")
 
@@ -600,7 +600,7 @@ shape = SubResource("CircleShape2D_attack")
 [node name="AttackCooldownTimer" type="Timer" parent="."]
 one_shot = true
 
-[node name="WardenHealthBar" type="TextureProgressBar" parent="."]
+[node name="MikoHealthBar" type="TextureProgressBar" parent="."]
 offset_left = -26.0
 offset_top = 22.0
 offset_right = 26.0

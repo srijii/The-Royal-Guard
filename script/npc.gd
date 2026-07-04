@@ -239,24 +239,43 @@ func _enter_exploration_phase() -> void:
 func _teleport_demo() -> void:
 	if _skip_tutorial_requested:
 		return
+	if not is_inside_tree():
+		return
 
 	# Teleport behind the character to (10, 75)
 	if _sprite:
 		_sprite.visible = false
-	await get_tree().create_timer(0.08).timeout
+	var tw1 := get_tree()
+	if not tw1:
+		return
+	await tw1.create_timer(0.08).timeout
+	if not is_inside_tree():
+		return
 	global_position = Vector2(10, 75)
 	_last_move_dir = Vector2.UP  # Set facing direction for animation system
 	if _sprite:
 		_sprite.visible = true
 		_sprite.play("idle-n")  # Face north
 	
-	await get_tree().create_timer(1.0).timeout
+	var tw2 := get_tree()
+	if not tw2:
+		return
+	await tw2.create_timer(1.0).timeout
 	
 	# Player should face south (idle)
 	if _player_ref and _player_ref.has_method("set_facing_south"):
 		_player_ref.call("set_facing_south")
 	
 	await _say_timed("Princess", "See, I can teleport using the ring.", 1.4)
+
+
+func _safe_timer(seconds: float) -> SceneTreeTimer:
+	if not is_inside_tree():
+		return null
+	var t := get_tree()
+	if not t:
+		return null
+	return t.create_timer(seconds)
 
 
 func _run_fast_teleport_burst(origin: Vector2) -> void:
@@ -279,12 +298,18 @@ func _run_fast_teleport_burst(origin: Vector2) -> void:
 			break
 		if _sprite:
 			_sprite.visible = false
-		await get_tree().create_timer(hop_blink_seconds).timeout
+		var tb := _safe_timer(hop_blink_seconds)
+		if not tb:
+			return
+		await tb.timeout
 
 		global_position = target
 		if _sprite:
 			_sprite.visible = true
-		await get_tree().create_timer(hop_hold_seconds).timeout
+		var th := _safe_timer(hop_hold_seconds)
+		if not th:
+			return
+		await th.timeout
 
 	if _sprite:
 		_sprite.play("idle-s")
@@ -308,10 +333,15 @@ func flee_from_skeleton() -> void:
 	
 	# Only teleport 3 times max
 	if _flee_teleport_count <= 3:
+		if not is_inside_tree():
+			return
 		# Teleport away from skeleton
 		if _sprite:
 			_sprite.visible = false
-		await get_tree().create_timer(0.08).timeout
+		var tf := _safe_timer(0.08)
+		if not tf:
+			return
+		await tf.timeout
 		
 		# Move to a far location away (vary position each teleport)
 		var flee_offset := Vector2(400, -150)
@@ -328,7 +358,7 @@ func flee_from_skeleton() -> void:
 			_sprite.play("idle-n")
 		
 		# Show message through world system
-		var scene = get_tree().get_current_scene()
+		var scene := get_tree().get_current_scene() if is_inside_tree() else null
 		if scene and scene.has_method("_show_system_message"):
 			if _flee_teleport_count < 3:
 				scene.call("_show_system_message", "Princess fled from the skeleton!", 2.0)
@@ -336,10 +366,13 @@ func flee_from_skeleton() -> void:
 				scene.call("_show_system_message", "Princess can't escape anymore! She runs away...", 3.0)
 		
 		# Wait before continuing
-		await get_tree().create_timer(1.0).timeout
+		var tw := _safe_timer(1.0)
+		if not tw:
+			return
+		await tw.timeout
 	else:
 		# After 3 teleports, just show running animation
-		var scene = get_tree().get_current_scene()
+		var scene := get_tree().get_current_scene() if is_inside_tree() else null
 		if scene and scene.has_method("_show_system_message"):
 			scene.call("_show_system_message", "The Princess runs away in desperation!", 2.0)
 	
@@ -527,6 +560,8 @@ func _say_timed(speaker: String, text: String, seconds: float) -> void:
 	var time_left := seconds
 	while time_left > 0.0 and not _skip_tutorial_requested:
 		var step := minf(0.08, time_left)
+		if not is_inside_tree():
+			return
 		var tree := get_tree()
 		if not tree:
 			return
@@ -627,6 +662,8 @@ func _type_current_caption() -> void:
 		if _skip_typing_requested or _skip_tutorial_requested:
 			break
 		_dialogue_label.visible_characters += 1
+		if not is_inside_tree():
+			return
 		var tree := get_tree()
 		if not tree:
 			return
@@ -641,6 +678,8 @@ func _wait_for_advance() -> void:
 	_waiting_for_advance = true
 	_advance_requested = false
 	while not _advance_requested and not _skip_tutorial_requested:
+		if not is_inside_tree():
+			return
 		var tree := get_tree()
 		if not tree:
 			return
@@ -678,7 +717,10 @@ func _run_return_with_torch_sequence() -> void:
 	await _say_and_wait("Princess", "Now, let me introduce you to the power of light.")
 	await _say_and_wait("Princess", "This torch will help you see in the dark.")
 	await _say_and_wait("Princess", "Hold the torch close to illuminate your path.")
-	await get_tree().create_timer(return_teleport_delay_seconds).timeout
+	var tr := _safe_timer(return_teleport_delay_seconds)
+	if not tr:
+		return
+	await tr.timeout
 	await _teleport_to_spawn_point()
 
 	# Keep existing lamp unlock progression.
@@ -699,9 +741,14 @@ func _run_return_with_torch_sequence() -> void:
 
 
 func _teleport_to_spawn_point() -> void:
+	if not is_inside_tree():
+		return
 	if _sprite:
 		_sprite.visible = false
-	await get_tree().create_timer(0.08).timeout
+	var tt := _safe_timer(0.08)
+	if not tt:
+		return
+	await tt.timeout
 	global_position = _spawn_position
 	_last_move_dir = Vector2.UP  # Set facing direction for animation system
 	if _sprite:
@@ -709,7 +756,7 @@ func _teleport_to_spawn_point() -> void:
 		_sprite.play("idle-n")
 	
 	# Show teleport caption
-	var scene = get_tree().get_current_scene()
+	var scene := get_tree().get_current_scene() if is_inside_tree() else null
 	if scene and scene.has_method("_show_system_message"):
 		scene.call("_show_system_message", "Princess teleported to the crown.", 2.0)
 
@@ -770,15 +817,17 @@ func _try_dodge_attack() -> void:
 		_sprite.visible = false
 	global_position = new_pos
 	velocity = Vector2.ZERO
-	get_tree().create_timer(0.06).timeout.connect(func():
-		if is_instance_valid(_sprite):
-			_sprite.visible = true
-	)
+	var td := _safe_timer(0.06)
+	if td:
+		td.timeout.connect(func():
+			if is_instance_valid(_sprite):
+				_sprite.visible = true
+		)
 
 	if _player_ref and _player_ref.has_method("apply_skeleton_slow"):
 		_player_ref.call("apply_skeleton_slow", 2.0, 1.5)
 
-	var scene := get_tree().get_current_scene()
+	var scene := get_tree().get_current_scene() if is_inside_tree() else null
 	if scene and scene.has_method("_show_system_message"):
 		scene.call("_show_system_message", "Princess dodged your attack and used the ring to slow you down!", 2.5)
 

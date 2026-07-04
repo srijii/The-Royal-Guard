@@ -1,12 +1,12 @@
-[gd_scene load_steps=18 format=3]
+[gd_scene format=3 uid="uid://c7bw7kpkgxpyf"]
 
-[ext_resource type="Texture2D" path="res://tileset/Dungeon_Tiles.png" id="1_fpu3l"]
-[ext_resource type="Texture2D" path="res://tileset/Wall_Variations.png" id="2_lomfu"]
-[ext_resource type="Texture2D" path="res://tileset/Bonfire_05-Sheet.png" id="3_1l40t"]
-[ext_resource type="Texture2D" path="res://tileset/Fire_01-Sheet.png" id="4_o6prf"]
-[ext_resource type="Texture2D" path="res://tileset/Iron_02-Sheet.png" id="5_13k4k"]
-[ext_resource type="Texture2D" path="res://tileset/Bone.png" id="6_86uxq"]
-[ext_resource type="Script" path="res://script/final_boss.gd" id="7_final_boss_script"]
+[ext_resource type="Texture2D" uid="uid://byq36v51arb20" path="res://tileset/Dungeon_Tiles.png" id="1_fpu3l"]
+[ext_resource type="Texture2D" uid="uid://0fdhxfjhk5ac" path="res://tileset/Wall_Variations.png" id="2_lomfu"]
+[ext_resource type="Texture2D" uid="uid://bgnt081tfucdb" path="res://tileset/Bonfire_05-Sheet.png" id="3_1l40t"]
+[ext_resource type="Texture2D" uid="uid://bwx7wt6lu1dxy" path="res://tileset/Fire_01-Sheet.png" id="4_o6prf"]
+[ext_resource type="Texture2D" uid="uid://dew6id03nuy52" path="res://tileset/Iron_02-Sheet.png" id="5_13k4k"]
+[ext_resource type="Texture2D" uid="uid://d1qcbwlugdpm1" path="res://tileset/Bone.png" id="6_86uxq"]
+[ext_resource type="Script" uid="uid://clobrfl4gleqk" path="res://script/final_boss.gd" id="7_final_boss_script"]
 [ext_resource type="PackedScene" path="res://scene/player.tscn" id="8_player"]
 [ext_resource type="PackedScene" path="res://scene/miko.tscn" id="9_miko"]
 
@@ -671,21 +671,21 @@ sources/4 = SubResource("TileSetAtlasSource_ekxnl")
 sources/5 = SubResource("TileSetAtlasSource_f4v1g")
 sources/8 = SubResource("TileSetAtlasSource_88tu3")
 
-[node name="Node2D" type="Node2D"]
+[node name="Node2D" type="Node2D" unique_id=670819029]
 script = ExtResource("7_final_boss_script")
 
-[node name="WorldCollisionTop" type="StaticBody2D" parent="."]
+[node name="WorldCollisionTop" type="StaticBody2D" parent="." unique_id=15651050]
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="WorldCollisionTop"]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="WorldCollisionTop" unique_id=452248300]
 position = Vector2(565, 26.25)
 scale = Vector2(1.25, 1.25)
 shape = SubResource("RectangleShape2D_qa077")
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="WorldCollisionTop"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WorldCollisionTop" unique_id=1747552001]
 position = Vector2(442, 23)
 shape = SubResource("RectangleShape2D_qa077")
 
-[node name="player" parent="." instance=ExtResource("8_player")]
+[node name="player" parent="." unique_id=328777937 instance=ExtResource("8_player")]
 scale = Vector2(1.25, 1.25)
 speed = 100.0
 camera_zoom = Vector2(2.5, 2.5)
@@ -693,12 +693,12 @@ zoom_out_on_hold = Vector2(1, 0.6)
 attack_damage = 44
 attack_range = 42.0
 
-[node name="miko" parent="." instance=ExtResource("9_miko")]
+[node name="miko" parent="." unique_id=589493842 instance=ExtResource("9_miko")]
 position = Vector2(750, 250)
 scale = Vector2(0.8, 0.8)
-health = 500
+health = 1000
 
-[node name="TileMap" type="TileMap" parent="."]
+[node name="TileMap" type="TileMap" parent="." unique_id=882383876]
 tile_set = SubResource("TileSet_vaxdl")
 format = 2
 layer_0/name = "wall0"
@@ -712,9 +712,11 @@ layer_3/tile_data = PackedInt32Array(196653, 524288, 12, 262189, 524288, 13, 196
 layer_4/name = "Layer4"
 layer_4/tile_data = PackedInt32Array(262150, 3, 0, 327730, 3, 0, 196614, 4, 0, 458764, 3, 0, 262194, 4, 0, 393228, 4, 0, 720923, 3, 0, 655410, 3, 0, 589874, 4, 0, 393243, 4, 0, 458779, 3, 0, 655387, 4, 0, 655366, 3, 0, 589830, 4, 0, 458796, 3, 0, 393260, 4, 0, 786434, 5, 0, 917519, 4, 0, 917542, 4, 0, 852020, 5, 0)
 
-[node name="WorldCollisionBottom" type="StaticBody2D" parent="."]
+[node name="WorldCollisionBottom" type="StaticBody2D" parent="." unique_id=435203419]
 
-[node name="CollisionShape2D2" type="CollisionShape2D" parent="WorldCollisionBottom"]
+[node name="CollisionShape2D2" type="CollisionShape2D" parent="WorldCollisionBottom" unique_id=562205637]
 position = Vector2(440.74997, 387.25)
 scale = Vector2(0.99999994, 0.99999994)
 shape = SubResource("RectangleShape2D_qa077")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="WorldCollisionBottom" unique_id=753065914]

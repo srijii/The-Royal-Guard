@@ -608,6 +608,44 @@ func _build_pause_settings_dialog() -> void:
 
 	_refresh_pause_keybind_buttons()
 
+	# --- Opacity slider ---
+	var opacity_row := HBoxContainer.new()
+	opacity_row.custom_minimum_size = Vector2(0, 32)
+	list.add_child(opacity_row)
+
+	var opacity_label := Label.new()
+	opacity_label.text = "Button Opacity"
+	opacity_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	opacity_row.add_child(opacity_label)
+
+	var opacity_slider := HSlider.new()
+	opacity_slider.min_value = 0.2
+	opacity_slider.max_value = 1.0
+	opacity_slider.step = 0.05
+	var cfg := ConfigFile.new()
+	cfg.load("user://options.cfg")
+	var saved_opacity := float(cfg.get_value("controls", "button_opacity", 0.85))
+	opacity_slider.value = saved_opacity
+	opacity_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	opacity_slider.custom_minimum_size = Vector2(100, 0)
+	opacity_row.add_child(opacity_slider)
+
+	var opacity_value_label := Label.new()
+	opacity_value_label.text = "%d%%" % (saved_opacity * 100)
+	opacity_value_label.custom_minimum_size = Vector2(36, 0)
+	opacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	opacity_row.add_child(opacity_value_label)
+
+	opacity_slider.value_changed.connect(func(v: float) -> void:
+		opacity_value_label.text = "%d%%" % (v * 100)
+		var c := ConfigFile.new()
+		c.load("user://options.cfg")
+		c.set_value("controls", "button_opacity", v)
+		c.save("user://options.cfg")
+		if _player_instance and _player_instance.has_method("update_mobile_button_opacity"):
+			_player_instance.call("update_mobile_button_opacity", v)
+	)
+
 
 func _refresh_pause_keybind_buttons() -> void:
 	for action_name in _pause_keybind_buttons.keys():
@@ -720,7 +758,12 @@ func _on_npc_night_started(_queen_position: Vector2) -> void:
 	
 	# Wait for night transition (darkness + dialogue) to complete before spawning skeleton
 	# Darkness takes 10 seconds, plus time for dialogue messages
-	await get_tree().create_timer(13.0).timeout
+	if not is_inside_tree():
+		return
+	var t13 := get_tree()
+	if not t13:
+		return
+	await t13.create_timer(13.0).timeout
 	
 	# Now spawn skeleton only after complete darkness
 	var spawned := _spawn_skeleton_near_queen()
@@ -1160,7 +1203,12 @@ func _process_system_message_queue() -> void:
 	
 	# Wait for remaining display duration before processing next message
 	if remaining_time > 0.0:
-		await get_tree().create_timer(remaining_time).timeout
+		if not is_inside_tree():
+			return
+		var tmr := get_tree()
+		if not tmr:
+			return
+		await tmr.create_timer(remaining_time).timeout
 	
 	_system_message_label.visible = false
 	if _system_message_bg:
@@ -1172,6 +1220,8 @@ func _process_system_message_queue() -> void:
 
 func _type_system_message() -> void:
 	if _system_message_label == null:
+		return
+	if not is_inside_tree():
 		return
 
 	var total_chars := _system_message_label.get_total_character_count()
@@ -1188,7 +1238,12 @@ func _type_system_message() -> void:
 		if _system_message_skip_requested:
 			break
 		_system_message_label.visible_characters += 1
-		await get_tree().create_timer(step_delay).timeout
+		if not is_inside_tree():
+			return
+		var tw := get_tree()
+		if not tw:
+			return
+		await tw.create_timer(step_delay).timeout
 
 	_system_message_label.visible_characters = -1
 	_system_message_typing = false
@@ -1602,7 +1657,12 @@ func _run_queen_escape_sequence(skeleton: Node2D) -> void:
 			_night_help_line_spoken = true
 			_show_system_message("Princess: The ring's power is fading... Come protect me!", 3.0)
 
-		await get_tree().create_timer(0.4).timeout
+		if not is_inside_tree():
+			return
+		var tw04 := get_tree()
+		if not tw04:
+			return
+		await tw04.create_timer(0.4).timeout
 
 	_night_player_quest_active = true
 	_set_objective_text("Quest: Go near the skeleton and protect the princess")
@@ -1633,7 +1693,12 @@ func _teleport_queen_away_from_skeleton(skeleton: Node2D) -> void:
 	var npc_sprite := _npc_instance.get_node_or_null("AnimatedSprite2D2") as AnimatedSprite2D
 	if npc_sprite:
 		npc_sprite.visible = false
-	await get_tree().create_timer(0.08).timeout
+	if not is_inside_tree():
+		return
+	var tw008 := get_tree()
+	if not tw008:
+		return
+	await tw008.create_timer(0.08).timeout
 	_npc_instance.global_position = target
 	if npc_sprite:
 		npc_sprite.visible = true
@@ -1662,9 +1727,19 @@ func _update_night_player_quest_trigger() -> void:
 			_night_skeleton_instance.call("set_forced_target", _player_instance, true, true)
 		_night_quest_wait_time = 0.0
 		# Skeleton taunt and attack
-		await get_tree().create_timer(0.7).timeout
-		_show_system_message("Skeleton: I got the ring, and I’m leaving!", 2.0)
-		await get_tree().create_timer(1.2).timeout
+		if not is_inside_tree():
+			return
+		var tw07 := get_tree()
+		if not tw07:
+			return
+		await tw07.create_timer(0.7).timeout
+		_show_system_message("Skeleton: I got the ring, and I\'m leaving!", 2.0)
+		if not is_inside_tree():
+			return
+		var tw12 := get_tree()
+		if not tw12:
+			return
+		await tw12.create_timer(1.2).timeout
 		if _night_skeleton_instance.has_method("_try_attack_player"):
 			_night_skeleton_instance.call("_try_attack_player")
 		return
@@ -1675,7 +1750,12 @@ func _update_night_player_quest_trigger() -> void:
 		var offset = Vector2(40, 0)
 		_player_instance.global_position = skel_pos + offset
 		_show_system_message("Skeleton: I got the ring, and I’m leaving!", 2.0)
-		await get_tree().create_timer(1.2).timeout
+		if not is_inside_tree():
+			return
+		var tw12b := get_tree()
+		if not tw12b:
+			return
+		await tw12b.create_timer(1.2).timeout
 		if _night_skeleton_instance.has_method("_try_attack_player"):
 			_night_skeleton_instance.call("_try_attack_player")
 		_night_quest_wait_time = 0.0
@@ -1794,7 +1874,12 @@ func _run_death_sequence() -> void:
 
 	# Show centered death text first, then fade after 2 seconds.
 	_death_overlay_you_died_label.visible = true
-	await get_tree().create_timer(2.0, true).timeout
+	if not is_inside_tree():
+		return
+	var twd2 := get_tree()
+	if not twd2:
+		return
+	await twd2.create_timer(2.0, true).timeout
 
 	var fade_tween := create_tween()
 	fade_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)

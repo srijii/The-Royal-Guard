@@ -711,7 +711,12 @@ func _show_door_hint(message: String) -> void:
 
 
 func _hide_door_hint_after_delay(serial: int) -> void:
-	await get_tree().create_timer(1.6).timeout
+	if not is_inside_tree():
+		return
+	var tw16 := get_tree()
+	if not tw16:
+		return
+	await tw16.create_timer(1.6).timeout
 	if serial != _door_hint_message_serial:
 		return
 	if _door_transition_active:
@@ -911,6 +916,44 @@ func _build_pause_settings_dialog() -> void:
 		_pause_keybind_buttons[action_name] = key_label
 
 	_refresh_pause_keybind_buttons()
+
+	# --- Opacity slider ---
+	var opacity_row := HBoxContainer.new()
+	opacity_row.custom_minimum_size = Vector2(0, 32)
+	list.add_child(opacity_row)
+
+	var opacity_label := Label.new()
+	opacity_label.text = "Button Opacity"
+	opacity_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	opacity_row.add_child(opacity_label)
+
+	var opacity_slider := HSlider.new()
+	opacity_slider.min_value = 0.2
+	opacity_slider.max_value = 1.0
+	opacity_slider.step = 0.05
+	var cfg := ConfigFile.new()
+	cfg.load("user://options.cfg")
+	var saved_opacity := float(cfg.get_value("controls", "button_opacity", 0.85))
+	opacity_slider.value = saved_opacity
+	opacity_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	opacity_slider.custom_minimum_size = Vector2(100, 0)
+	opacity_row.add_child(opacity_slider)
+
+	var opacity_value_label := Label.new()
+	opacity_value_label.text = "%d%%" % (saved_opacity * 100)
+	opacity_value_label.custom_minimum_size = Vector2(36, 0)
+	opacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	opacity_row.add_child(opacity_value_label)
+
+	opacity_slider.value_changed.connect(func(v: float) -> void:
+		opacity_value_label.text = "%d%%" % (v * 100)
+		var c := ConfigFile.new()
+		c.load("user://options.cfg")
+		c.set_value("controls", "button_opacity", v)
+		c.save("user://options.cfg")
+		if _player_node and _player_node.has_method("update_mobile_button_opacity"):
+			_player_node.call("update_mobile_button_opacity", v)
+	)
 
 
 func _refresh_pause_keybind_buttons() -> void:

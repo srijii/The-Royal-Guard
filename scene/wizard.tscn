@@ -371,12 +371,12 @@ animations = [{
 radius = 3.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_detect"]
-radius = 180.0
+radius = 300.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_attack"]
-radius = 18.0
+radius = 160.0
 
-[node name="warden" type="CharacterBody2D"]
+[node name="wizard" type="CharacterBody2D"]
 scale = Vector2(0.6, 0.6)
 script = ExtResource("1_26nbo")
 

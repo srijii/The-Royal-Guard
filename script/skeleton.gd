@@ -409,7 +409,12 @@ func _try_attack_player() -> void:
 	if player.has_method("apply_uncontrolled_throw"):
 		player.call("apply_uncontrolled_throw", global_position, throw_force, attack_throw_duration)
 
-	await get_tree().create_timer(0.28).timeout
+	if not is_inside_tree():
+		return
+	var tw028p := get_tree()
+	if not tw028p:
+		return
+	await tw028p.create_timer(0.28).timeout
 
 	# Damage based on ring status
 	if player != null and _is_target_alive(player):
@@ -469,33 +474,73 @@ func _try_attack_queen() -> void:
 		is_attacking = false
 		if queen != null and queen.has_method("flee_from_skeleton"):
 			queen.call("flee_from_skeleton")
-		var current_scene := get_tree().get_current_scene()
+		if not is_inside_tree():
+			return
+		var scene_before := get_tree()
+		if not scene_before:
+			return
+		var current_scene := scene_before.get_current_scene()
 		if current_scene and current_scene.has_method("_show_system_message"):
 			current_scene.call("_show_system_message", "Backup skeleton has stolen the ring!", 3.0)
-		await get_tree().create_timer(0.5).timeout
+		if not is_inside_tree():
+			return
+		var tw05a := get_tree()
+		if not tw05a:
+			return
+		await tw05a.create_timer(0.5).timeout
 		_teleport_to_player_and_kill()
 		return
 
-	await get_tree().create_timer(0.28).timeout
+	if not is_inside_tree():
+		return
+	var tw028 := get_tree()
+	if not tw028:
+		return
+	await tw028.create_timer(0.28).timeout
 
 	$AnimatedSprite2D.play("hit")
-	await get_tree().create_timer(0.14).timeout
+	if not is_inside_tree():
+		return
+	var tw014 := get_tree()
+	if not tw014:
+		return
+	await tw014.create_timer(0.14).timeout
 
 	if queen != null and queen.has_method("flee_from_skeleton"):
 		queen.call("flee_from_skeleton")
 	
-	var scene = get_tree().get_current_scene()
+	if not is_inside_tree():
+		return
+	var tree2 := get_tree()
+	if not tree2:
+		return
+	var scene = tree2.get_current_scene()
 	if scene and scene.has_method("_show_system_message"):
 		scene.call("_show_system_message", "Skeleton has stolen the ring!", 3.0)
 	
-	await get_tree().create_timer(0.5).timeout
+	if not is_inside_tree():
+		return
+	var tw05 := get_tree()
+	if not tw05:
+		return
+	await tw05.create_timer(0.5).timeout
 	$skeletonLaughs.play()
 	
-	await get_tree().create_timer(0.8).timeout
+	if not is_inside_tree():
+		return
+	var tw08 := get_tree()
+	if not tw08:
+		return
+	await tw08.create_timer(0.8).timeout
 	if scene and scene.has_method("_show_system_message"):
 		scene.call("_show_system_message", "Skeleton: Hahaha, I have the ring!", 3.0)
 	
-	await get_tree().create_timer(0.6).timeout
+	if not is_inside_tree():
+		return
+	var tw06 := get_tree()
+	if not tw06:
+		return
+	await tw06.create_timer(0.6).timeout
 
 	_attack_in_progress = false
 	is_attacking = false
@@ -506,8 +551,15 @@ func _try_attack_queen() -> void:
 func _teleport_to_player_and_kill() -> void:
 	if player == null or not _is_target_alive(player):
 		return
+	if not is_inside_tree():
+		return
 	global_position = player.global_position + teleport_player_offset
-	var scene := get_tree().get_current_scene()
+	if not is_inside_tree():
+		return
+	var tk_tree := get_tree()
+	if not tk_tree:
+		return
+	var scene := tk_tree.get_current_scene()
 	if scene and scene.has_method("_show_system_message"):
 		scene.call("_show_system_message", "Backup skeleton teleported to you!", 2.5)
 	if player.has_method("take_damage"):
