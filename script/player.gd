@@ -167,6 +167,9 @@ var _mobile_attack_pressed := false
 var _mobile_sprint_pressed := false
 var _mobile_map_pressed := false
 
+var _mobile_btn_font: SystemFont = null
+var _mobile_btn_infos: Array[Dictionary] = []
+
 
 func is_attacking() -> bool:
 	return _is_attacking
@@ -292,6 +295,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _mobile_joystick_touch_id == 0 and mm.button_mask & MOUSE_BUTTON_MASK_LEFT:
 				_update_mobile_joystick(mm.position)
 				get_viewport().set_input_as_handled()
+
+		if _process_mobile_buttons_event(event):
+			return
 
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_L:
@@ -886,6 +892,9 @@ func _setup_mobile_controls_if_enabled() -> void:
 	_mobile_layer.visible = true
 	add_child(_mobile_layer)
 
+	_mobile_btn_font = SystemFont.new()
+	_mobile_btn_font.font_names = PackedStringArray(["Noto Sans", "Liberation Sans", "FreeSans", "sans-serif"])
+
 	var viewport_size := get_viewport_rect().size
 	_mobile_joystick_center = Vector2(90.0, viewport_size.y - 110.0)
 
@@ -928,136 +937,188 @@ func _setup_mobile_controls_if_enabled() -> void:
 	var ax := viewport_size.x - 80.0
 	var ay := viewport_size.y - 90.0
 
-	_create_mobile_action_button("\u2694", Vector2(ax, ay), attack_d, btn_opacity, func() -> void:
+	_add_mobile_action_button("\u2694", Vector2(ax, ay), attack_d, btn_opacity, func() -> void:
 		_mobile_attack_pressed = true
 	, func() -> void:
 		_mobile_attack_pressed = false
 	)
 
-	_create_mobile_action_button("\u26A1", Vector2(ax - 90.0, ay - 48.0), sprint_d, btn_opacity, func() -> void:
+	_add_mobile_action_button("\u26A1", Vector2(ax - 90.0, ay - 48.0), sprint_d, btn_opacity, func() -> void:
 		_mobile_sprint_pressed = true
 	, func() -> void:
 		_mobile_sprint_pressed = false
 	)
 
-	_create_mobile_action_button("\u2302", Vector2(viewport_size.x * 0.065, viewport_size.y * 0.10), map_d, btn_opacity, func() -> void:
+	_add_mobile_action_button("\u2302", Vector2(viewport_size.x * 0.065, viewport_size.y * 0.10), map_d, btn_opacity, func() -> void:
 		_mobile_map_pressed = true
 	, func() -> void:
 		_mobile_map_pressed = false
 	)
 
-	_create_mobile_tap_button("\u2665", Vector2(ax, ay - 86.0), heal_d, btn_opacity, Callable(self, "_use_health_potion"))
+	_add_mobile_tap_button("\u2665", Vector2(ax, ay - 86.0), heal_d, btn_opacity, Callable(self, "_use_health_potion"))
 
 	var top_y := viewport_size.y * 0.15
-	_create_mobile_tap_button("\u2726", Vector2(viewport_size.x - 160.0, top_y), small_d, btn_opacity, Callable(self, "_use_strength_potion"))
-	_create_mobile_tap_button("\u2605", Vector2(viewport_size.x - 90.0, top_y), small_d, btn_opacity, Callable(self, "_use_energy_drink"))
-	_create_mobile_tap_button("\u2600", Vector2(viewport_size.x - 230.0, top_y), small_d, btn_opacity, Callable(self, "_toggle_mobile_lamp"))
+	_add_mobile_tap_button("\u2726", Vector2(viewport_size.x - 160.0, top_y), small_d, btn_opacity, Callable(self, "_use_strength_potion"))
+	_add_mobile_tap_button("\u2605", Vector2(viewport_size.x - 90.0, top_y), small_d, btn_opacity, Callable(self, "_use_energy_drink"))
+	_add_mobile_tap_button("\u2600", Vector2(viewport_size.x - 230.0, top_y), small_d, btn_opacity, Callable(self, "_toggle_mobile_lamp"))
+	_add_mobile_tap_button("E", Vector2(viewport_size.x - 300.0, top_y), small_d, btn_opacity, Callable(self, "_mobile_interact"))
 
 
-func _create_mobile_action_button(label_text: String, center_pos: Vector2, diameter: float, opacity: float, on_press: Callable, on_release: Callable) -> void:
+func _add_mobile_action_button(label_text: String, center_pos: Vector2, diameter: float, opacity: float, on_press: Callable, on_release: Callable) -> void:
 	if _mobile_layer == null:
 		return
 
 	var half := int(diameter * 0.5)
 	var cr := int(diameter * 0.5)
 
-	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = Color(0.08, 0.10, 0.18, 0.92 * opacity)
-	btn_style.border_color = Color(0.78, 0.60, 0.24, 0.6 * opacity)
-	btn_style.border_width_left = 1
-	btn_style.border_width_top = 1
-	btn_style.border_width_right = 1
-	btn_style.border_width_bottom = 1
-	btn_style.corner_radius_top_left = cr
-	btn_style.corner_radius_top_right = cr
-	btn_style.corner_radius_bottom_left = cr
-	btn_style.corner_radius_bottom_right = cr
+	var panel := Panel.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.10, 0.18, 0.92 * opacity)
+	style.border_color = Color(0.78, 0.60, 0.24, 0.6 * opacity)
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = cr
+	style.corner_radius_top_right = cr
+	style.corner_radius_bottom_left = cr
+	style.corner_radius_bottom_right = cr
+	panel.add_theme_stylebox_override("panel", style)
+	panel.custom_minimum_size = Vector2(diameter, diameter)
+	panel.size = Vector2(diameter, diameter)
+	panel.position = center_pos - Vector2(half, half)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.z_index = 210
+	_mobile_layer.add_child(panel)
 
-	var btn_hover := btn_style.duplicate()
-	btn_hover.bg_color = Color(0.12, 0.16, 0.28, 0.95 * opacity)
-	btn_hover.border_color = Color(0.90, 0.72, 0.35, 0.8 * opacity)
+	var label := Label.new()
+	label.text = label_text
+	label.add_theme_font_override("font", _mobile_btn_font)
+	label.add_theme_font_size_override("font_size", int(diameter * 0.42))
+	label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.50, 1.0))
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size = Vector2(diameter, diameter)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(label)
 
-	var btn_pressed := btn_style.duplicate()
-	btn_pressed.bg_color = Color(0.06, 0.08, 0.14, 0.95 * opacity)
-	btn_pressed.border_color = Color(0.60, 0.45, 0.18, 0.8 * opacity)
-
-	var theme := Theme.new()
-	theme.set_stylebox("normal", "Button", btn_style)
-	theme.set_stylebox("hover", "Button", btn_hover)
-	theme.set_stylebox("pressed", "Button", btn_pressed)
-	theme.set_color("font_color", "Button", Color(0.95, 0.82, 0.50, 1.0))
-	theme.set_color("font_hover_color", "Button", Color(1.0, 0.95, 0.85, 1.0))
-	theme.set_color("font_pressed_color", "Button", Color(0.85, 0.72, 0.40, 1.0))
-
-	var icon_font := SystemFont.new()
-	icon_font.font_names = PackedStringArray(["Noto Sans", "Liberation Sans", "FreeSans", "sans-serif"])
-
-	var button := Button.new()
-	button.theme = theme
-	button.add_theme_font_override("font", icon_font)
-	button.text = label_text
-	button.custom_minimum_size = Vector2(diameter, diameter)
-	button.position = center_pos - Vector2(half, half)
-	button.add_theme_font_size_override("font_size", int(diameter * 0.42))
-	button.z_index = 210
-	button.pressed.connect(on_press)
-	button.button_up.connect(on_release)
-	_mobile_layer.add_child(button)
+	_mobile_btn_infos.append({
+		rect = Rect2(panel.position, panel.size),
+		press = on_press,
+		release = on_release,
+		tap = Callable(),
+		touch_id = -1
+	})
 
 
-func _create_mobile_tap_button(label_text: String, center_pos: Vector2, diameter: float, opacity: float, on_tap: Callable) -> void:
+func _add_mobile_tap_button(label_text: String, center_pos: Vector2, diameter: float, opacity: float, on_tap: Callable) -> void:
 	if _mobile_layer == null:
 		return
 
 	var half := int(diameter * 0.5)
 	var cr := int(diameter * 0.5)
 
-	var btn_style := StyleBoxFlat.new()
-	btn_style.bg_color = Color(0.07, 0.09, 0.16, 0.90 * opacity)
-	btn_style.border_color = Color(0.78, 0.60, 0.24, 0.5 * opacity)
-	btn_style.border_width_left = 1
-	btn_style.border_width_top = 1
-	btn_style.border_width_right = 1
-	btn_style.border_width_bottom = 1
-	btn_style.corner_radius_top_left = cr
-	btn_style.corner_radius_top_right = cr
-	btn_style.corner_radius_bottom_left = cr
-	btn_style.corner_radius_bottom_right = cr
+	var panel := Panel.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.07, 0.09, 0.16, 0.90 * opacity)
+	style.border_color = Color(0.78, 0.60, 0.24, 0.5 * opacity)
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = cr
+	style.corner_radius_top_right = cr
+	style.corner_radius_bottom_left = cr
+	style.corner_radius_bottom_right = cr
+	panel.add_theme_stylebox_override("panel", style)
+	panel.custom_minimum_size = Vector2(diameter, diameter)
+	panel.size = Vector2(diameter, diameter)
+	panel.position = center_pos - Vector2(half, half)
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.z_index = 210
+	_mobile_layer.add_child(panel)
 
-	var btn_hover := btn_style.duplicate()
-	btn_hover.bg_color = Color(0.12, 0.16, 0.28, 0.93 * opacity)
-	btn_hover.border_color = Color(0.90, 0.72, 0.35, 0.7 * opacity)
+	var label := Label.new()
+	label.text = label_text
+	label.add_theme_font_override("font", _mobile_btn_font)
+	label.add_theme_font_size_override("font_size", int(diameter * 0.38))
+	label.add_theme_color_override("font_color", Color(0.91, 0.86, 0.75, 1.0))
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.size = Vector2(diameter, diameter)
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.add_child(label)
 
-	var btn_pressed := btn_style.duplicate()
-	btn_pressed.bg_color = Color(0.05, 0.07, 0.12, 0.93 * opacity)
-	btn_pressed.border_color = Color(0.60, 0.45, 0.18, 0.7 * opacity)
-
-	var theme := Theme.new()
-	theme.set_stylebox("normal", "Button", btn_style)
-	theme.set_stylebox("hover", "Button", btn_hover)
-	theme.set_stylebox("pressed", "Button", btn_pressed)
-	theme.set_color("font_color", "Button", Color(0.91, 0.86, 0.75, 1.0))
-	theme.set_color("font_hover_color", "Button", Color(1.0, 0.95, 0.85, 1.0))
-	theme.set_color("font_pressed_color", "Button", Color(0.85, 0.72, 0.40, 1.0))
-
-	var icon_font := SystemFont.new()
-	icon_font.font_names = PackedStringArray(["Noto Sans", "Liberation Sans", "FreeSans", "sans-serif"])
-
-	var button := Button.new()
-	button.theme = theme
-	button.add_theme_font_override("font", icon_font)
-	button.text = label_text
-	button.custom_minimum_size = Vector2(diameter, diameter)
-	button.position = center_pos - Vector2(half, half)
-	button.add_theme_font_size_override("font_size", int(diameter * 0.38))
-	button.z_index = 210
-	button.pressed.connect(on_tap)
-	_mobile_layer.add_child(button)
+	_mobile_btn_infos.append({
+		rect = Rect2(panel.position, panel.size),
+		press = Callable(),
+		release = Callable(),
+		tap = on_tap,
+		touch_id = -1
+	})
 
 
 func _toggle_mobile_lamp() -> void:
 	if lamp_control_unlocked and point_light:
 		point_light.visible = not point_light.visible
+
+
+func _mobile_interact() -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_E
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	ev = InputEventKey.new()
+	ev.keycode = KEY_E
+	ev.pressed = false
+	Input.parse_input_event(ev)
+
+
+func _process_mobile_buttons_event(event: InputEvent) -> bool:
+	var event_pos: Vector2
+	var pressed: bool
+	var touch_id: int
+
+	if event is InputEventMouseButton:
+		var mb := event as InputEventMouseButton
+		event_pos = mb.position
+		pressed = mb.pressed
+		touch_id = 0
+	elif event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		event_pos = touch.position
+		pressed = touch.pressed
+		touch_id = touch.index
+	else:
+		return false
+
+	var handled := false
+
+	if pressed:
+		for info in _mobile_btn_infos:
+			if info.touch_id == -1 and info.rect.has_point(event_pos):
+				info.touch_id = touch_id
+				if not info.tap.is_null():
+					info.tap.call()
+					handled = true
+					break
+				if not info.press.is_null():
+					info.press.call()
+					handled = true
+					break
+	else:
+		for info in _mobile_btn_infos:
+			if info.touch_id == touch_id:
+				info.touch_id = -1
+				if not info.release.is_null():
+					info.release.call()
+				handled = true
+				break
+
+	if handled:
+		get_viewport().set_input_as_handled()
+
+	return handled
 
 
 func _update_mobile_joystick(screen_pos: Vector2) -> void:
