@@ -306,6 +306,35 @@ func _build_settings_popup() -> void:
 	check.toggled.connect(_on_mobile_controls_toggled)
 	toggle_row.add_child(check)
 
+	var opacity_row := HBoxContainer.new()
+	opacity_row.custom_minimum_size = Vector2(0, 32)
+	toggle_section.add_child(opacity_row)
+
+	var opacity_label := Label.new()
+	opacity_label.text = "Button Opacity"
+	opacity_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	opacity_row.add_child(opacity_label)
+
+	var opacity_slider := HSlider.new()
+	opacity_slider.min_value = 0.2
+	opacity_slider.max_value = 1.0
+	opacity_slider.step = 0.05
+	opacity_slider.value = _get_mobile_button_opacity()
+	opacity_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	opacity_slider.custom_minimum_size = Vector2(100, 0)
+	opacity_row.add_child(opacity_slider)
+
+	var opacity_value_label := Label.new()
+	opacity_value_label.text = "%d%%" % (opacity_slider.value * 100)
+	opacity_value_label.custom_minimum_size = Vector2(36, 0)
+	opacity_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	opacity_row.add_child(opacity_value_label)
+
+	opacity_slider.value_changed.connect(func(v: float) -> void:
+		opacity_value_label.text = "%d%%" % (v * 100)
+		_save_button_opacity(v)
+	)
+
 
 func _make_section_spacer(height: int) -> Control:
 	var s := Control.new()
@@ -326,8 +355,10 @@ func _describe_action_binding(action_name: String) -> String:
 
 
 func _ensure_default_bind_actions() -> void:
-	for action_name in ["up", "down", "left", "right", "attack", "sprint"]:
+	for action_name in ["up", "down", "left", "right"]:
 		_ensure_action_key(action_name, KEY_SPACE)
+	_ensure_action_key("attack", KEY_CTRL)
+	_ensure_action_key("sprint", KEY_SHIFT)
 	_ensure_action_key("hold_map_zoom", KEY_M)
 	_ensure_action_key("use_health_potion", KEY_SPACE)
 	_ensure_action_key("use_strength_potion", KEY_J)
@@ -348,6 +379,21 @@ func _is_mobile_controls_enabled() -> bool:
 	if cfg.load(OPTIONS_PATH) != OK:
 		return false
 	return bool(cfg.get_value("controls", "mobile_controls", false))
+
+
+func _get_mobile_button_opacity() -> float:
+	var cfg := ConfigFile.new()
+	if cfg.load(OPTIONS_PATH) != OK:
+		return 0.85
+	return float(cfg.get_value("controls", "button_opacity", 0.85))
+
+
+func _save_button_opacity(value: float) -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(OPTIONS_PATH) != OK:
+		pass
+	cfg.set_value("controls", "button_opacity", value)
+	cfg.save(OPTIONS_PATH)
 
 
 func _on_mobile_controls_toggled(_enabled: bool) -> void:

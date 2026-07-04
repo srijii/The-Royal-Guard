@@ -318,27 +318,43 @@ func _create_health_hud() -> void:
 	_quest_label.add_theme_color_override("font_color", Color(1.0, 0.84, 0.24, 1.0))
 	hud_layer.add_child(_quest_label)
 
-	# --- Tutorial labels: bottom center with dark background ---
-	var tutorial_bg := ColorRect.new()
+	# --- Tutorial labels: bottom center with navy/gold panel ---
+	var tutorial_bg := Panel.new()
 	tutorial_bg.anchor_left = 0.5
 	tutorial_bg.anchor_top = 1.0
 	tutorial_bg.anchor_right = 0.5
 	tutorial_bg.anchor_bottom = 1.0
-	tutorial_bg.position = Vector2(-210, -138)
-	tutorial_bg.size = Vector2(420, 70)
-	tutorial_bg.color = Color(0.04, 0.04, 0.06, 0.7)
+	tutorial_bg.position = Vector2(-220, -145)
+	tutorial_bg.custom_minimum_size = Vector2(440, 76)
+	tutorial_bg.size = Vector2(440, 76)
+	var t_style := StyleBoxFlat.new()
+	t_style.bg_color = Color(0.055, 0.078, 0.157, 0.85)
+	t_style.border_color = Color(0.78, 0.60, 0.24, 0.6)
+	t_style.border_width_left = 1
+	t_style.border_width_top = 1
+	t_style.border_width_right = 1
+	t_style.border_width_bottom = 1
+	t_style.corner_radius_top_left = 6
+	t_style.corner_radius_top_right = 6
+	t_style.corner_radius_bottom_left = 6
+	t_style.corner_radius_bottom_right = 6
+	tutorial_bg.add_theme_stylebox_override("panel", t_style)
 	hud_layer.add_child(tutorial_bg)
+
+	var tutorial_font := load("res://fonts/Retro Gaming.ttf") as Font
 
 	_tutorial_attack_label = Label.new()
 	_tutorial_attack_label.anchor_left = 0.5
 	_tutorial_attack_label.anchor_top = 1.0
 	_tutorial_attack_label.anchor_right = 0.5
 	_tutorial_attack_label.anchor_bottom = 1.0
-	_tutorial_attack_label.position = Vector2(-200, -133)
-	_tutorial_attack_label.size = Vector2(400, 18)
+	_tutorial_attack_label.position = Vector2(-210, -135)
+	_tutorial_attack_label.size = Vector2(420, 18)
 	_tutorial_attack_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_tutorial_attack_label.add_theme_font_size_override("font_size", 12)
-	_tutorial_attack_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	_tutorial_attack_label.add_theme_font_size_override("font_size", 11)
+	if tutorial_font:
+		_tutorial_attack_label.add_theme_font_override("font", tutorial_font)
+	_tutorial_attack_label.add_theme_color_override("font_color", Color(0.95, 0.82, 0.50, 1.0))
 	hud_layer.add_child(_tutorial_attack_label)
 
 	_tutorial_potions_label = Label.new()
@@ -346,11 +362,13 @@ func _create_health_hud() -> void:
 	_tutorial_potions_label.anchor_top = 1.0
 	_tutorial_potions_label.anchor_right = 0.5
 	_tutorial_potions_label.anchor_bottom = 1.0
-	_tutorial_potions_label.position = Vector2(-200, -115)
-	_tutorial_potions_label.size = Vector2(400, 18)
+	_tutorial_potions_label.position = Vector2(-210, -118)
+	_tutorial_potions_label.size = Vector2(420, 18)
 	_tutorial_potions_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_tutorial_potions_label.add_theme_font_size_override("font_size", 12)
-	_tutorial_potions_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	_tutorial_potions_label.add_theme_font_size_override("font_size", 11)
+	if tutorial_font:
+		_tutorial_potions_label.add_theme_font_override("font", tutorial_font)
+	_tutorial_potions_label.add_theme_color_override("font_color", Color(0.91, 0.86, 0.75, 1.0))
 	hud_layer.add_child(_tutorial_potions_label)
 
 	_tutorial_sprint_label = Label.new()
@@ -358,11 +376,13 @@ func _create_health_hud() -> void:
 	_tutorial_sprint_label.anchor_top = 1.0
 	_tutorial_sprint_label.anchor_right = 0.5
 	_tutorial_sprint_label.anchor_bottom = 1.0
-	_tutorial_sprint_label.position = Vector2(-200, -97)
-	_tutorial_sprint_label.size = Vector2(400, 18)
+	_tutorial_sprint_label.position = Vector2(-210, -101)
+	_tutorial_sprint_label.size = Vector2(420, 18)
 	_tutorial_sprint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	_tutorial_sprint_label.add_theme_font_size_override("font_size", 12)
-	_tutorial_sprint_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
+	_tutorial_sprint_label.add_theme_font_size_override("font_size", 11)
+	if tutorial_font:
+		_tutorial_sprint_label.add_theme_font_override("font", tutorial_font)
+	_tutorial_sprint_label.add_theme_color_override("font_color", Color(0.91, 0.86, 0.75, 1.0))
 	hud_layer.add_child(_tutorial_sprint_label)
 
 	_refresh_tutorial_labels()
@@ -479,16 +499,16 @@ func _update_potion_inventory() -> void:
 
 func _refresh_tutorial_labels() -> void:
 	if _tutorial_attack_label != null:
-		_tutorial_attack_label.text = "Tutorial: Press Ctrl to attack"
+		_tutorial_attack_label.text = "Press Ctrl to attack"
 
 	if _tutorial_potions_label != null:
 		var regen_key := _pause_describe_action_binding("use_health_potion")
 		var strength_key := _pause_describe_action_binding("use_strength_potion")
 		var energy_key := _pause_describe_action_binding("use_energy_drink")
-		_tutorial_potions_label.text = "Tutorial: Potions - %s: Regeneration, %s: Strength, %s: Energy" % [regen_key, strength_key, energy_key]
+		_tutorial_potions_label.text = "Potions: %s Regen | %s Strength | %s Energy" % [regen_key, strength_key, energy_key]
 
 	if _tutorial_sprint_label != null:
-		_tutorial_sprint_label.text = "Tutorial: Hold Shift to sprint (uses Energy)"
+		_tutorial_sprint_label.text = "Hold " + _pause_describe_action_binding("sprint") + " to sprint (uses Energy)"
 
 
 func _update_resource_bars() -> void:
