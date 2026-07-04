@@ -398,7 +398,7 @@ func _apply_attack_hit_effects() -> void:
 	).set_delay(0.2)
 
 
-func _spawn_shockwave(shockwave_target: Vector2) -> void:
+func _spawn_shockwave(_shockwave_target: Vector2) -> void:
 	var fx_root := get_tree().current_scene
 	if fx_root == null:
 		fx_root = get_tree().root

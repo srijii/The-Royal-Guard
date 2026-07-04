@@ -40,7 +40,7 @@ var _target_locked := false
 var _instant_kill_target := false
 var _has_hit_queen := false
 var _forced_player_aggro := false
-var _player_attack_damage := 1
+
 var _pass_through_bob_phase := 0.0
 var _sprite_base_position := Vector2.ZERO
 

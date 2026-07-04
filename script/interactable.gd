@@ -2,7 +2,7 @@ extends CharacterBody2D
 
 @export var interaction_radius := 72.0
 @export var interaction_name := "Item"
-@export var idle_animation := "idle"
+@export var idle_animation := "idle_s"
 @export var interact_animation := "interact"
 @export var post_interact_animation := ""
 @export var return_to_idle_after_interact := true
@@ -58,7 +58,7 @@ func try_interact() -> bool:
 		else:
 			# If post-interact is a one-shot, wait for it to finish
 			await _sprite.animation_finished
-	elif return_to_idle_after_interact and _sprite:
+	elif return_to_idle_after_interact and _sprite and _sprite.sprite_frames and _sprite.sprite_frames.has_animation(idle_animation):
 		_sprite.play(idle_animation)
 	
 	_in_interaction = false
@@ -71,5 +71,5 @@ func get_interaction_name() -> String:
 	return interaction_name
 
 
-func set_interaction_name(name: String) -> void:
-	interaction_name = name
+func set_interaction_name(item_name: String) -> void:
+	interaction_name = item_name

@@ -835,7 +835,7 @@ func _process_wander(delta: float) -> void:
 	_set_princess_animation(dir)
 
 
-func _step_away_from_player(delta: float) -> bool:
+func _step_away_from_player(_delta: float) -> bool:
 	if _player_ref == null:
 		return false
 

@@ -291,18 +291,15 @@ func _set_player_hearts(health_percent: float) -> void:
 func _health_percent(target: Node) -> float:
 	if target == null:
 		return 0.0
-	if not ("current_health" in target):
+	var current_health = target.get("current_health")
+	if current_health == null:
 		return 0.0
-
-	var max_value := 0.0
-	if "max_health" in target:
-		max_value = float(target.max_health)
-	elif "health" in target:
-		max_value = float(target.health)
-
+	var max_value := float(target.get("max_health"))
+	if max_value <= 0.0:
+		max_value = float(target.get("health"))
 	if max_value <= 0.0:
 		return 0.0
-	return clampf(float(target.current_health) / max_value * 100.0, 0.0, 100.0)
+	return clampf(float(current_health) / max_value * 100.0, 0.0, 100.0)
 
 
 func _add_potion_row(parent: VBoxContainer, potion_type: String, tint: Color, label_text: String) -> void:

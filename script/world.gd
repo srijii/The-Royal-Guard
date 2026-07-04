@@ -1,6 +1,6 @@
 extends Node2D
 
-signal died
+
 signal _death_respawn_pressed
 
 const PAUSE_KEY_ACTIONS := {
@@ -84,7 +84,7 @@ var _intro_hud_layer: CanvasLayer = null
 var _objective_label: Label = null
 var _prompt_label: Label = null
 var _item_prompt_label: Label = null
-var _item_prompt_position := Vector2.ZERO
+
 var _system_message_bg: ColorRect = null
 var _system_message_label: Label = null
 var _system_message_time_left := 0.0
@@ -124,8 +124,7 @@ var _death_sequence_started := false
 
 # Track time since night quest started for teleport logic
 var _night_quest_wait_time := 0.0
-var _base_player_speed := -1.0
-var _base_player_stair_speed := -1.0
+
 
 func _on_skeleton_ring_stolen() -> void:
 	_ring_stolen = true
@@ -1147,7 +1146,7 @@ func _type_system_message() -> void:
 	_system_message_skip_requested = false
 
 
-func _update_system_message(delta: float) -> void:
+func _update_system_message(_delta: float) -> void:
 	# Message lifecycle is now handled in _process_system_message_queue
 	# This function kept for compatibility but does nothing
 	pass
@@ -1158,11 +1157,11 @@ func _show_coordinates() -> void:
 	pass
 
 
-func _update_coordinate_display(delta: float) -> void:
+func _update_coordinate_display(_delta: float) -> void:
 	if _coordinate_label == null or _player_instance == null:
 		return
 
-func _update_darkness_hint(delta: float) -> void:
+func _update_darkness_hint(_delta: float) -> void:
 	if _darkness_hint_label == null or _player_instance == null:
 		return
 
@@ -1207,7 +1206,7 @@ func _show_ring_stolen_warning() -> void:
 	_ring_warning_time_left = 0.0
 
 
-func _update_ring_warning(delta: float) -> void:
+func _update_ring_warning(_delta: float) -> void:
 	if _ring_warning_panel == null:
 		return
 
