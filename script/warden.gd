@@ -101,8 +101,11 @@ func _ready() -> void:
 		_float_phase = randf() * TAU
 
 
+var _dead := false
+
+
 func _physics_process(delta: float) -> void:
-	if not is_inside_tree() or not is_physics_processing():
+	if _dead or not is_inside_tree() or not is_physics_processing():
 		return
 	var start_position := global_position
 
@@ -129,7 +132,7 @@ func _physics_process(delta: float) -> void:
 
 	velocity += _combat_knockback_velocity
 	
-	if is_inside_tree():
+	if is_inside_tree() and not is_queued_for_deletion():
 		move_and_slide()
 	var moved_distance := global_position.distance_to(start_position)
 	_update_wander_unstuck(delta, moved_distance)
@@ -401,10 +404,7 @@ func _spawn_shockwave(_shockwave_target: Vector2) -> void:
 	tween.tween_property(pulse, "global_position", _shockwave_target, 0.20)
 	tween.tween_property(pulse, "scale", Vector2(1.8, 1.8), 0.20).from(Vector2.ONE)
 	tween.tween_property(pulse, "modulate:a", 0.0, 0.20)
-	tween.finished.connect(func() -> void:
-		if is_instance_valid(pulse):
-			pulse.queue_free()
-	)
+	tween.finished.connect(Helpers.queue_free_node.bind(weakref(pulse)))
 
 
 func _choose_new_wander_target() -> void:
@@ -624,7 +624,9 @@ func take_damage(amount: int) -> void:
 	current_health = max(0, current_health - amount)
 	_refresh_health_bar()
 	if current_health <= 0:
+		_dead = true
 		_drop_potion_loot()
+		set_physics_process(false)
 		queue_free()
 
 
@@ -679,7 +681,7 @@ func _spawn_single_potion_drop(potion_type: String, offset: Vector2) -> void:
 	pickup.body_entered.connect(func(body: Node) -> void:
 		if body == null or not is_instance_valid(body):
 			return
-		if pickup == null or not is_instance_valid(pickup):
+		if not is_instance_valid(pickup):
 			return
 		if body.has_method("add_potion_item"):
 			body.call("add_potion_item", potion_type)

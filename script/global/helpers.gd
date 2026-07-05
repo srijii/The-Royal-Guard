@@ -5,6 +5,12 @@ func choose(array: Array):
 	return array.front()
 
 
+static func queue_free_node(ref: WeakRef) -> void:
+	var node := ref.get_ref() as Node
+	if node != null and is_instance_valid(node):
+		node.queue_free()
+
+
 func spawn_blood_effect(position: Vector2) -> void:
 	var root := get_tree().current_scene
 	if root == null:
@@ -35,10 +41,7 @@ func spawn_blood_effect(position: Vector2) -> void:
 		root_tween.tween_property(drop, "global_position", drop.global_position + spread, 0.3)
 		root_tween.tween_property(drop, "modulate:a", 0.0, 0.3)
 
-	root_tween.finished.connect(func() -> void:
-		if is_instance_valid(blood):
-			blood.queue_free()
-	)
+	root_tween.finished.connect(Helpers.queue_free_node.bind(weakref(blood)))
 
 
 func spawn_bone_effect(position: Vector2) -> void:
@@ -71,10 +74,7 @@ func spawn_bone_effect(position: Vector2) -> void:
 		root_tween.tween_property(chip, "rotation", randf_range(-3.0, 3.0), 0.4)
 		root_tween.tween_property(chip, "modulate:a", 0.0, 0.4)
 
-	root_tween.finished.connect(func() -> void:
-		if is_instance_valid(bone_group):
-			bone_group.queue_free()
-	)
+	root_tween.finished.connect(Helpers.queue_free_node.bind(weakref(bone_group)))
 
 
 func spawn_blood_stain(position: Vector2) -> void:
@@ -99,7 +99,4 @@ func spawn_blood_stain(position: Vector2) -> void:
 
 	var tween := create_tween()
 	tween.tween_property(stain, "modulate:a", 0.0, 4.0).set_delay(6.0)
-	tween.finished.connect(func() -> void:
-		if is_instance_valid(stain):
-			stain.queue_free()
-	)
+	tween.finished.connect(Helpers.queue_free_node.bind(weakref(stain)))

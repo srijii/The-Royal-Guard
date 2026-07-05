@@ -64,6 +64,7 @@ func take_damage(amount: int) -> void:
 	current_health = max(0, current_health - damage_amount)
 	Helpers.spawn_blood_effect(global_position)
 	Helpers.spawn_blood_stain(global_position)
+	_start_camera_shake(6.0, 0.3)
 	if current_health == 0:
 		die()
 
@@ -114,6 +115,16 @@ func _ensure_regeneration_timer() -> void:
 func die() -> void:
 	if is_alive:
 		is_alive = false
+		velocity = Vector2.ZERO
+		if animated_sprite:
+			animated_sprite.visible = false
+		if collision_shape:
+			collision_shape.set_deferred("disabled", true)
+		Helpers.spawn_blood_effect(global_position)
+		Helpers.spawn_blood_effect(global_position + Vector2(randf_range(-6, 6), randf_range(-6, 6)))
+		Helpers.spawn_blood_effect(global_position + Vector2(randf_range(-8, 8), randf_range(-8, 8)))
+		Helpers.spawn_blood_stain(global_position)
+		Helpers.spawn_blood_stain(global_position + Vector2(randf_range(-5, 5), randf_range(-5, 5)))
 		emit_signal("died")
 
 var last_dir := Vector2.UP
@@ -141,6 +152,12 @@ var _potion_counts := {
 	"health": 0,
 	"strength": 0,
 	"energy": 0,
+	"stew": 0,
+}
+var _spell_counts := {
+	"fire": 0,
+	"ice": 0,
+	"lightning": 0,
 }
 var _wizard_key_count := 0
 var _strength_buff_time_left := 0.0
@@ -171,6 +188,19 @@ var _mobile_btn_font: SystemFont = null
 var _mobile_btn_infos: Array[Dictionary] = []
 var _mobile_button_panels: Array[Panel] = []
 var _last_btn_opacity := -1.0
+
+var _shake_intensity := 0.0
+var _shake_duration := 0.0
+var _shake_timer := 0.0
+
+var _dizziness_active := false
+var _dizziness_timer := 0.0
+var _dizziness_tint: ColorRect = null
+var _dizziness_tint2: ColorRect = null
+var _dizziness_drift_angle := 0.0
+var _dizziness_drift_change_timer := 0.0
+var _dizziness_drift_strength := 80.0
+var _energy_regen_cooldown := 0.0
 
 
 func is_attacking() -> bool:
@@ -386,11 +416,16 @@ func force_kill_by_skeleton() -> void:
 	velocity = Vector2.ZERO
 
 	if collision_shape:
-		collision_shape.disabled = true
+		collision_shape.set_deferred("disabled", true)
 
 	if animated_sprite:
-		current_anim = get_idle_anim(last_dir)
-		animated_sprite.play(current_anim)
+		animated_sprite.visible = false
+
+	Helpers.spawn_blood_effect(global_position)
+	Helpers.spawn_blood_effect(global_position + Vector2(randf_range(-6, 6), randf_range(-6, 6)))
+	Helpers.spawn_blood_effect(global_position + Vector2(randf_range(-8, 8), randf_range(-8, 8)))
+	Helpers.spawn_blood_stain(global_position)
+	Helpers.spawn_blood_stain(global_position + Vector2(randf_range(-5, 5), randf_range(-5, 5)))
 
 	emit_signal("died")
 
@@ -451,9 +486,103 @@ func start_bleeding(duration := 6.0) -> void:
 	_bleeding_stain_timer = 0.1
 
 
+func _start_camera_shake(intensity: float, duration: float) -> void:
+	_shake_intensity = intensity
+	_shake_duration = duration
+	_shake_timer = duration
+
+
+func _update_camera_shake(delta: float) -> void:
+	if _shake_timer <= 0.0:
+		return
+	_shake_timer -= delta
+	var cam := _get_attached_camera()
+	if cam == null:
+		return
+	if _shake_timer <= 0.0:
+		cam.offset = Vector2.ZERO
+		return
+	var progress := _shake_timer / _shake_duration
+	var current_intensity := _shake_intensity * progress
+	cam.offset = Vector2(
+		randf_range(-current_intensity, current_intensity),
+		randf_range(-current_intensity, current_intensity)
+	)
+
+
+func start_dizziness(duration := 10.0) -> void:
+	_dizziness_active = true
+	_dizziness_timer = duration
+	_dizziness_drift_angle = randf() * TAU
+	_dizziness_drift_change_timer = 0.0
+	var cam := _get_attached_camera()
+	if cam == null:
+		return
+	if _dizziness_tint == null:
+		_dizziness_tint = ColorRect.new()
+		_dizziness_tint.color = Color(0.5, 0.05, 0.05, 0.2)
+		_dizziness_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_dizziness_tint.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_dizziness_tint.offset_left = 0.0
+		_dizziness_tint.offset_top = 0.0
+		_dizziness_tint.offset_right = 0.0
+		_dizziness_tint.offset_bottom = 0.0
+		cam.add_child(_dizziness_tint)
+	if _dizziness_tint2 == null:
+		_dizziness_tint2 = ColorRect.new()
+		_dizziness_tint2.color = Color(0.1, 0.1, 0.4, 0.12)
+		_dizziness_tint2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_dizziness_tint2.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_dizziness_tint2.offset_left = 0.0
+		_dizziness_tint2.offset_top = 0.0
+		_dizziness_tint2.offset_right = 0.0
+		_dizziness_tint2.offset_bottom = 0.0
+		cam.add_child(_dizziness_tint2)
+	_dizziness_tint.visible = true
+	_dizziness_tint2.visible = true
+
+
+func is_dizziness_active() -> bool:
+	return _dizziness_active
+
+
+func _update_dizziness(delta: float) -> void:
+	if not _dizziness_active:
+		return
+	_dizziness_timer -= delta
+	var cam := _get_attached_camera()
+	if cam and _shake_timer <= 0.0:
+		var t := _dizziness_timer
+		var sway_x := sin(t * 2.5) * 8.0 + sin(t * 6.1) * 3.0
+		var sway_y := cos(t * 1.8) * 5.0 + cos(t * 4.7) * 2.0
+		cam.offset = Vector2(sway_x, sway_y)
+		cam.rotation = sin(t * 3.0) * 0.025 + sin(t * 7.0) * 0.01
+	_dizziness_drift_change_timer -= delta
+	if _dizziness_drift_change_timer <= 0.0:
+		_dizziness_drift_angle = randf() * TAU
+		_dizziness_drift_change_timer = randf_range(0.4, 1.2)
+	if _dizziness_tint:
+		var pulse_a := 0.15 + sin(_dizziness_timer * 4.0) * 0.08
+		_dizziness_tint.color.a = pulse_a
+	if _dizziness_tint2:
+		var pulse_b := 0.10 + cos(_dizziness_timer * 5.5) * 0.06
+		_dizziness_tint2.color.a = pulse_b
+	if _dizziness_timer <= 0.0:
+		_dizziness_active = false
+		if _dizziness_tint:
+			_dizziness_tint.visible = false
+		if _dizziness_tint2:
+			_dizziness_tint2.visible = false
+		if cam:
+			cam.offset = Vector2.ZERO
+			cam.rotation = 0.0
+
+
 func _physics_process(delta):
 	_update_camera_hold_zoom(delta)
 	_update_combat_knockback(delta)
+	_update_camera_shake(delta)
+	_update_dizziness(delta)
 
 	if _attack_cooldown_left > 0.0:
 		_attack_cooldown_left = maxf(0.0, _attack_cooldown_left - delta)
@@ -502,11 +631,19 @@ func _physics_process(delta):
 
 	var input_dir := _get_move_input_vector()
 
+	if _dizziness_active:
+		var drift_dir := Vector2.RIGHT.rotated(_dizziness_drift_angle)
+		var drift_amount := _dizziness_drift_strength / speed
+		input_dir = (input_dir + drift_dir * drift_amount).normalized() if input_dir.length_squared() > 0.001 else drift_dir * 0.6
+
 	var stair_type := get_stair_type()
 	var sprinting := _consume_energy_for_sprint(delta, input_dir)
 	_is_running = sprinting
 
-	if not sprinting and _energy_value < max_energy:
+	if _energy_regen_cooldown > 0.0:
+		_energy_regen_cooldown = maxf(0.0, _energy_regen_cooldown - delta)
+
+	if not sprinting and _energy_value < max_energy and _energy_regen_cooldown <= 0.0:
 		var regen_rate := energy_regen_standing if input_dir == Vector2.ZERO else energy_regen_walking
 		_energy_value = minf(max_energy, _energy_value + regen_rate * delta)
 
@@ -710,7 +847,7 @@ func _spawn_player_attack_fx(target_position: Vector2, facing_dir: Vector2) -> v
 
 	var arc := Polygon2D.new()
 	var arc_points := PackedVector2Array()
-	var arc_radius := 28.0
+	var arc_radius := 18.0
 	var arc_angle := deg_to_rad(55.0)
 	var steps := 10
 	for i in range(steps + 1):
@@ -742,10 +879,7 @@ func _spawn_player_attack_fx(target_position: Vector2, facing_dir: Vector2) -> v
 	tween.tween_property(slash, "global_position", target_position, 0.15)
 	tween.tween_property(slash, "modulate:a", 0.0, 0.15)
 	tween.tween_property(arc, "scale", Vector2(1.4, 1.4), 0.15)
-	tween.finished.connect(func() -> void:
-		if is_instance_valid(slash):
-			slash.queue_free()
-	)
+	tween.finished.connect(Helpers.queue_free_node.bind(weakref(slash)))
 
 
 func _update_combat_knockback(delta: float) -> void:
@@ -771,6 +905,18 @@ func get_potion_count(potion_type: String) -> int:
 	if not _potion_counts.has(potion_type):
 		return 0
 	return int(_potion_counts[potion_type])
+
+
+func add_spell_item(spell_type: String) -> void:
+	if not _spell_counts.has(spell_type):
+		return
+	_spell_counts[spell_type] = int(_spell_counts[spell_type]) + 1
+
+
+func get_spell_count(spell_type: String) -> int:
+	if not _spell_counts.has(spell_type):
+		return 0
+	return int(_spell_counts[spell_type])
 
 
 func add_wizard_key() -> void:
@@ -854,6 +1000,8 @@ func _consume_energy_for_sprint(delta: float, input_dir: Vector2) -> bool:
 		return false
 
 	_energy_value = maxf(0.0, _energy_value - (energy_drain_per_second * delta))
+	if _energy_value <= 0.0:
+		_energy_regen_cooldown = 1.5
 	return true
 
 

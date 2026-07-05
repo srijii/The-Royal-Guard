@@ -419,10 +419,7 @@ func _spawn_shockwave(_shockwave_target: Vector2) -> void:
 	tween.tween_property(pulse, "global_position", target_position, 0.20)
 	tween.tween_property(pulse, "scale", Vector2(1.8, 1.8), 0.20).from(Vector2.ONE)
 	tween.tween_property(pulse, "modulate:a", 0.0, 0.20)
-	tween.finished.connect(func() -> void:
-		if is_instance_valid(pulse):
-			pulse.queue_free()
-	)
+	tween.finished.connect(Helpers.queue_free_node.bind(weakref(pulse)))
 
 
 func _choose_new_wander_target() -> void:
@@ -700,17 +697,8 @@ func _drop_ring_loot() -> void:
 	ring_sprite.z_index = 102
 	pickup.add_child(ring_sprite)
 
-	pickup.body_entered.connect(func(body: Node) -> void:
-		if body == null or not is_instance_valid(body):
-			return
-		if pickup == null or not is_instance_valid(pickup):
-			return
-		if _is_player(body):
-			var tree := pickup.get_tree()
-			if tree != null:
-				tree.call_group("final_boss_controller", "_on_queen_ring_collected")
-			pickup.queue_free()
-	)
+	var pickup_ref: WeakRef = weakref(pickup)
+	pickup.body_entered.connect(_on_ring_drop_body_entered.bind(pickup_ref))
 
 	var root: Node = get_tree().current_scene
 	if root == null:
@@ -811,3 +799,16 @@ func _refresh_health_bar() -> void:
 	_health_bar_node.value = float(current_health)
 	if _health_bar_node is CanvasItem:
 		(_health_bar_node as CanvasItem).visible = true
+
+
+func _on_ring_drop_body_entered(body: Node, pickup_ref: WeakRef) -> void:
+	var pickup := pickup_ref.get_ref() as Area2D
+	if pickup == null or not is_instance_valid(pickup):
+		return
+	if body == null or not is_instance_valid(body):
+		return
+	if _is_player(body):
+		var tree := pickup.get_tree()
+		if tree != null:
+			tree.call_group("final_boss_controller", "_on_queen_ring_collected")
+		pickup.queue_free()
