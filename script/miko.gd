@@ -20,6 +20,13 @@ enum State {
 @export var attack_anim_time: float = 0.50
 @export var attack_anim_fps: float = 3.0
 @export var health: int = 260
+@export var health_regen_rate: int = 3
+@export var health_regen_interval: float = 1.0
+@export var invisible_regen_rate: int = 6
+@export var invisible_duration: float = 5.0
+@export var invisible_cooldown: float = 15.0
+@export var invisible_indicator_duration: float = 2.0
+@export var teleport_distance: float = 150.0
 @export var knockback_force_taken: float = 520.0
 @export var knockback_decay: float = 520.0
 @export var player_memory_time: float = 2.5
@@ -53,6 +60,12 @@ var _health_bar_control: Control = null
 var _health_bar_base_position: Vector2 = Vector2.ZERO
 var _drop_spawned := false
 var _defeated := false
+var _is_invisible := false
+var _invisible_timer: float = 0.0
+var _invisible_cooldown_timer: float = 0.0
+var _invisible_indicator_timer: float = 0.0
+var _health_regen_timer: float = 0.0
+var _invisible_indicator: Node2D = null
 
 @onready var animated_sprite: AnimatedSprite2D = $AnimatedSprite2D
 @onready var front_ray: RayCast2D = $"RayCast2D"
@@ -103,6 +116,37 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		return
 
+	# Health regeneration
+	_health_regen_timer += delta
+	var regen_rate := health_regen_rate
+	if _is_invisible:
+		regen_rate = invisible_regen_rate
+	if _health_regen_timer >= health_regen_interval:
+		_health_regen_timer = 0.0
+		if current_health < health:
+			current_health = min(health, current_health + regen_rate)
+			_refresh_health_bar()
+
+	# Invisibility mechanics
+	if _invisible_cooldown_timer > 0.0:
+		_invisible_cooldown_timer = maxf(0.0, _invisible_cooldown_timer - delta)
+
+	if _is_invisible:
+		_invisible_timer -= delta
+		if _invisible_timer <= 0.0:
+			_end_invisibility()
+	elif _invisible_cooldown_timer <= 0.0 and not _is_invisible:
+		# Try to use invisibility when health is low or when far from player
+		if current_health <= health * 0.5 or (player != null and is_instance_valid(player) and global_position.distance_to(player.global_position) > 100):
+			_start_invisibility()
+
+	# Invisible indicator timer
+	if _invisible_indicator_timer > 0.0:
+		_invisible_indicator_timer -= delta
+		if _invisible_indicator_timer <= 0.0 and _invisible_indicator != null:
+			_invisible_indicator.queue_free()
+			_invisible_indicator = null
+
 	if _attack_cooldown_left > 0.0:
 		_attack_cooldown_left = maxf(0.0, _attack_cooldown_left - delta)
 	if _attack_anim_left > 0.0:
@@ -143,9 +187,98 @@ func _update_floating_effect(delta: float) -> void:
 	var float_offset := Vector2(x_offset, y_offset)
 	animated_sprite.position = _sprite_base_position + float_offset
 
-	# Keep health bar floating in sync with the warden.
+	# Keep health bar floating in sync with the miko.
 	if _health_bar_control != null:
 		_health_bar_control.position = _health_bar_base_position + float_offset
+
+
+func _start_invisibility() -> void:
+	_is_invisible = true
+	_invisible_timer = invisible_duration
+	_invisible_cooldown_timer = invisible_cooldown
+	
+	# Spawn visual indicator
+	_spawn_invisible_indicator()
+	
+	# Teleport to new location after indicator duration
+	await get_tree().create_timer(invisible_indicator_duration).timeout
+	if _is_invisible and not _defeated:
+		_teleport_to_new_location()
+		_set_opacity(0.0)
+
+
+func _teleport_to_new_location() -> void:
+	# Find a valid teleport location
+	var teleport_pos := _get_teleport_position()
+	if teleport_pos != Vector2.ZERO:
+		global_position = teleport_pos
+		_spawn_invisible_indicator()
+
+
+func _get_teleport_position() -> Vector2:
+	# Try to find a position away from player but within arena
+	var center := spawn_position
+	var max_attempts := 10
+	
+	for i in range(max_attempts):
+		var angle := randf() * TAU
+		var dist := randf_range(teleport_distance * 0.5, teleport_distance)
+		var test_pos := center + Vector2.RIGHT.rotated(angle) * dist
+		
+		# Check if position is valid (not too close to player)
+		if player != null and is_instance_valid(player):
+			if test_pos.distance_to(player.global_position) < 50:
+				continue
+		
+		return test_pos
+	
+	# Fallback: return spawn position
+	return center
+
+
+func _end_invisibility() -> void:
+	_is_invisible = false
+	_set_opacity(1.0)
+	# Spawn visual indicator when reappearing
+	_spawn_invisible_indicator()
+
+
+func _set_opacity(opacity: float) -> void:
+	if animated_sprite != null:
+		animated_sprite.modulate.a = opacity
+	if _health_bar_control != null:
+		_health_bar_control.modulate.a = opacity
+
+
+func _spawn_invisible_indicator() -> void:
+	if _invisible_indicator != null:
+		_invisible_indicator.queue_free()
+	
+	# Create a ghost-like indicator
+	_invisible_indicator = Node2D.new()
+	_invisible_indicator.global_position = global_position
+	_invisible_indicator.z_index = z_index + 1
+	get_tree().current_scene.add_child(_invisible_indicator)
+	
+	# Create ghost sprite (simple circle with fade)
+	var ghost := Polygon2D.new()
+	ghost.polygon = PackedVector2Array([
+		Vector2(-8.0, -12.0),
+		Vector2(8.0, -12.0),
+		Vector2(12.0, 0.0),
+		Vector2(8.0, 12.0),
+		Vector2(-8.0, 12.0),
+		Vector2(-12.0, 0.0)
+	])
+	ghost.color = Color(0.8, 0.6, 1.0, 0.8)
+	_invisible_indicator.add_child(ghost)
+	
+	# Animate the indicator
+	var tween := _invisible_indicator.create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(_invisible_indicator, "modulate:a", 0.0, invisible_indicator_duration).from(1.0)
+	tween.tween_property(_invisible_indicator, "scale", Vector2(1.5, 1.5), invisible_indicator_duration).from(Vector2.ONE)
+	tween.finished.connect(_on_indicator_finished)
 
 
 func _handle_collision_reroute() -> void:
@@ -633,15 +766,29 @@ func _on_attack_cooldown_timeout() -> void:
 	_attack_cooldown_left = 0.0
 
 
+func _on_indicator_finished() -> void:
+	if _invisible_indicator != null:
+		_invisible_indicator.queue_free()
+		_invisible_indicator = null
+
+
 func take_damage(amount: int) -> void:
 	if _defeated:
 		return
+	# End invisibility when hit
+	if _is_invisible:
+		_end_invisibility()
 	Helpers.spawn_blood_effect(global_position)
 	Helpers.spawn_blood_stain(global_position)
 	current_health = max(0, current_health - amount)
 	_refresh_health_bar()
 	if current_health <= 0:
 		_defeated = true
+		_is_invisible = false
+		_set_opacity(1.0)
+		if _invisible_indicator != null:
+			_invisible_indicator.queue_free()
+			_invisible_indicator = null
 		_drop_ring_loot()
 		_enter_defeated_state()
 

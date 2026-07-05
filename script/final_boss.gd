@@ -592,7 +592,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			var key_event := event as InputEventKey
 			if key_event.keycode == KEY_ENTER or key_event.keycode == KEY_KP_ENTER or key_event.keycode == KEY_SPACE:
 				_on_death_respawn_pressed()
-				get_viewport().set_input_as_handled()
+				var vp := get_viewport()
+				if vp != null:
+					vp.set_input_as_handled()
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
