@@ -39,3 +39,10 @@ Thumbs.db
 IN SEARCH OF THE RING.exe
 IN SEARCH OF THE RING.zip
 android.zip
+
+# Android signing
+*.keystore
+*.jks
+*.p12
+*.pem
+*.key

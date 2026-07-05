@@ -51,6 +51,8 @@ var _return_sequence_started := false
 var _exploration_started := false
 var _story_sequence_started := false
 var _story_completed := false
+var _story_step := 0
+var _story_resume_target := -1
 var _suppress_story_from_save := false
 var _skip_tutorial_requested := false
 var _is_typing := false
@@ -99,6 +101,9 @@ func _ready() -> void:
 
 
 func _begin_story_if_needed() -> void:
+	if _story_resume_target > 0 and not _story_completed:
+		_resume_story_sequence(_story_resume_target)
+		return
 	if _suppress_story_from_save or _story_completed or _story_sequence_started:
 		if _player_ref and _player_ref.has_method("set_controls_enabled"):
 			_player_ref.call("set_controls_enabled", true)
@@ -167,51 +172,66 @@ func _run_story_sequence() -> void:
 	_story_sequence_started = true
 
 	await _say_and_wait("Princess", "Good morning. You must be the new royal guard.")
+	_story_step = 1
 	if _abort_story_if_skipped():
 		return
 	await _say_and_wait("Princess", "From today, your duty is to protect me and the royal ring at all costs.")
+	_story_step = 2
 	if _abort_story_if_skipped():
 		return
 	await _say_and_wait("Princess", "This ring is ancient. It holds many magical powers created by the royal mages long ago.")
+	_story_step = 3
 	if _abort_story_if_skipped():
 		return
 
 	await _say_timed("Player", "What kind of powers?", 2.0)
+	_story_step = 4
 	if _abort_story_if_skipped():
 		return
 	await _say_timed("Princess", "I'll show you one of them.", 2.0)
+	_story_step = 5
 	if _abort_story_if_skipped():
 		return
 	await _teleport_demo()
+	_story_step = 6
 	if _abort_story_if_skipped():
 		return
 	await _say_and_wait("Princess", "And this is only one of its many powers.")
+	_story_step = 7
 	if _abort_story_if_skipped():
 		return
 
 	await _say_and_wait("Princess", "But tonight, during the moon eclipse, the ring will lose all its powers for a short time.")
+	_story_step = 8
 	if _abort_story_if_skipped():
 		return
 	await _say_and_wait("Princess", "When that happens, skeleton thieves will appear and try to steal the ring.")
+	_story_step = 9
 	if _abort_story_if_skipped():
 		return
 	await _say_and_wait("Princess", "You must protect me until the eclipse ends.")
+	_story_step = 10
 	if _abort_story_if_skipped():
 		return
 
 	await _say_and_wait("Princess", "The eclipse will happen at midnight. We still have some time.")
+	_story_step = 11
 	if _abort_story_if_skipped():
 		return
 	await _say_and_wait("Princess", "You should explore the palace and learn the surroundings.")
+	_story_step = 12
 	if _abort_story_if_skipped():
 		return
 	await _say_and_wait("Princess", "And bring me a Torch and the Map from the storage room.")
+	_story_step = 13
 	if _abort_story_if_skipped():
 		return
 	await _say_timed("System", "Quest: Find the Torch and map", 2.0)
+	_story_step = 14
 	if _abort_story_if_skipped():
 		return
 	await _say_timed("Princess", "Return to me before midnight.", 2.5)
+	_story_step = 15
 	if _abort_story_if_skipped():
 		return
 
@@ -223,6 +243,107 @@ func _abort_story_if_skipped() -> bool:
 		return false
 	_enter_exploration_phase()
 	return true
+
+
+func _resume_story_sequence(from_step: int) -> void:
+	_suppress_story_from_save = false
+	_story_sequence_started = true
+	_story_step = 0
+
+	if _player_ref and _player_ref.has_method("set_controls_enabled"):
+		_player_ref.call("set_controls_enabled", false)
+
+	if from_step <= 1:
+		await _say_and_wait("Princess", "Good morning. You must be the new royal guard.")
+		_story_step = 1
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 2:
+		await _say_and_wait("Princess", "From today, your duty is to protect me and the royal ring at all costs.")
+		_story_step = 2
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 3:
+		await _say_and_wait("Princess", "This ring is ancient. It holds many magical powers created by the royal mages long ago.")
+		_story_step = 3
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 4:
+		await _say_timed("Player", "What kind of powers?", 2.0)
+		_story_step = 4
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 5:
+		await _say_timed("Princess", "I'll show you one of them.", 2.0)
+		_story_step = 5
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 6:
+		await _teleport_demo()
+		_story_step = 6
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 7:
+		await _say_and_wait("Princess", "And this is only one of its many powers.")
+		_story_step = 7
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 8:
+		await _say_and_wait("Princess", "But tonight, during the moon eclipse, the ring will lose all its powers for a short time.")
+		_story_step = 8
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 9:
+		await _say_and_wait("Princess", "When that happens, skeleton thieves will appear and try to steal the ring.")
+		_story_step = 9
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 10:
+		await _say_and_wait("Princess", "You must protect me until the eclipse ends.")
+		_story_step = 10
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 11:
+		await _say_and_wait("Princess", "The eclipse will happen at midnight. We still have some time.")
+		_story_step = 11
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 12:
+		await _say_and_wait("Princess", "You should explore the palace and learn the surroundings.")
+		_story_step = 12
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 13:
+		await _say_and_wait("Princess", "And bring me a Torch and the Map from the storage room.")
+		_story_step = 13
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 14:
+		await _say_timed("System", "Quest: Find the Torch and map", 2.0)
+		_story_step = 14
+		if _abort_story_if_skipped():
+			return
+
+	if from_step <= 15:
+		await _say_timed("Princess", "Return to me before midnight.", 2.5)
+		_story_step = 15
+		if _abort_story_if_skipped():
+			return
+
+	_enter_exploration_phase()
 
 
 func _enter_exploration_phase() -> void:
@@ -1331,6 +1452,7 @@ func apply_saved_state(data: Dictionary) -> void:
 
 	_story_completed = bool(data.get("npc_story_completed", true))
 	_story_sequence_started = bool(data.get("npc_story_sequence_started", false))
+	_story_step = int(data.get("npc_story_step", 0))
 	_exploration_started = bool(data.get("npc_exploration_started", _story_completed))
 	_return_sequence_started = bool(data.get("npc_return_sequence_started", false))
 	_night_started = bool(data.get("npc_night_started", false))
@@ -1338,10 +1460,15 @@ func apply_saved_state(data: Dictionary) -> void:
 	var saved_wander_enabled := bool(data.get("npc_wander_enabled", _exploration_started and not _return_sequence_started and not _night_started))
 	_wander_enabled = saved_wander_enabled
 	_wander_has_target = false
-	_last_checkpoint_index = -1  # Reset checkpoint cooldown on load
+	_last_checkpoint_index = -1
 
 	_clear_dialogue()
-	if _player_ref and _player_ref.has_method("set_controls_enabled"):
+
+	if _story_sequence_started and not _story_completed and _story_step > 0:
+		_story_resume_target = _story_step
+		_suppress_story_from_save = false
+		_story_sequence_started = false
+	elif _player_ref and _player_ref.has_method("set_controls_enabled"):
 		_player_ref.call("set_controls_enabled", true)
 
 
@@ -1349,6 +1476,7 @@ func get_save_state() -> Dictionary:
 	return {
 		"npc_story_completed": _story_completed,
 		"npc_story_sequence_started": _story_sequence_started,
+		"npc_story_step": _story_step,
 		"npc_exploration_started": _exploration_started,
 		"npc_return_sequence_started": _return_sequence_started,
 		"npc_night_started": _night_started,

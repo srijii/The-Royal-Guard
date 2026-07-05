@@ -320,7 +320,12 @@ func _load_game_if_exists(player_node: Node2D) -> void:
 		else:
 			_set_objective_text("Quest: Find the Torch and map")
 	else:
-		_set_objective_text("")
+		var npc_story_started := bool(data.get("npc_story_sequence_started", false))
+		var npc_story_done := bool(data.get("npc_story_completed", false))
+		if npc_story_started and not npc_story_done:
+			_set_objective_text("Quest: Find the Torch and map")
+		else:
+			_set_objective_text("")
 	_set_prompt_text("")
 
 	if has_node("CanvasModulate") and data.has("night_color"):
