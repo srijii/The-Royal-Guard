@@ -335,6 +335,35 @@ func _build_settings_popup() -> void:
 		_save_button_opacity(v)
 	)
 
+	var size_row := HBoxContainer.new()
+	size_row.custom_minimum_size = Vector2(0, 32)
+	toggle_section.add_child(size_row)
+
+	var size_label := Label.new()
+	size_label.text = "Button Size"
+	size_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_row.add_child(size_label)
+
+	var size_slider := HSlider.new()
+	size_slider.min_value = 0.5
+	size_slider.max_value = 2.0
+	size_slider.step = 0.1
+	size_slider.value = _get_mobile_button_size()
+	size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_slider.custom_minimum_size = Vector2(100, 0)
+	size_row.add_child(size_slider)
+
+	var size_value_label := Label.new()
+	size_value_label.text = "%d%%" % (size_slider.value * 100)
+	size_value_label.custom_minimum_size = Vector2(36, 0)
+	size_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	size_row.add_child(size_value_label)
+
+	size_slider.value_changed.connect(func(v: float) -> void:
+		size_value_label.text = "%d%%" % (v * 100)
+		_save_button_size(v)
+	)
+
 
 func _make_section_spacer(height: int) -> Control:
 	var s := Control.new()
@@ -401,4 +430,19 @@ func _on_mobile_controls_toggled(_enabled: bool) -> void:
 	if cfg.load(OPTIONS_PATH) != OK:
 		pass
 	cfg.set_value("controls", "mobile_controls", _enabled)
+	cfg.save(OPTIONS_PATH)
+
+
+func _get_mobile_button_size() -> float:
+	var cfg := ConfigFile.new()
+	if cfg.load(OPTIONS_PATH) != OK:
+		return 1.0
+	return float(cfg.get_value("controls", "button_size", 1.0))
+
+
+func _save_button_size(value: float) -> void:
+	var cfg := ConfigFile.new()
+	if cfg.load(OPTIONS_PATH) != OK:
+		pass
+	cfg.set_value("controls", "button_size", value)
 	cfg.save(OPTIONS_PATH)

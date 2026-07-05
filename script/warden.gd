@@ -101,6 +101,22 @@ func _ready() -> void:
 		_float_phase = randf() * TAU
 
 
+func _exit_tree() -> void:
+	if detection_area != null:
+		if detection_area.body_entered.is_connected(_on_detection_body_entered):
+			detection_area.body_entered.disconnect(_on_detection_body_entered)
+		if detection_area.body_exited.is_connected(_on_detection_body_exited):
+			detection_area.body_exited.disconnect(_on_detection_body_exited)
+	if attack_area != null:
+		if attack_area.body_entered.is_connected(_on_attack_body_entered):
+			attack_area.body_entered.disconnect(_on_attack_body_entered)
+		if attack_area.body_exited.is_connected(_on_attack_body_exited):
+			attack_area.body_exited.disconnect(_on_attack_body_exited)
+	if attack_timer != null:
+		if attack_timer.timeout.is_connected(_on_attack_cooldown_timeout):
+			attack_timer.timeout.disconnect(_on_attack_cooldown_timeout)
+
+
 var _dead := false
 
 

@@ -153,7 +153,7 @@ func _create_health_hud() -> void:
 		var heart := Label.new()
 		heart.text = "♥"
 		heart.add_theme_font_size_override("font_size", 18)
-		heart.add_theme_color_override("font_color", Color(0.35, 0.35, 0.35, 0.95))
+		heart.self_modulate = Color(0.35, 0.35, 0.35, 0.95)
 		hearts_row.add_child(heart)
 		_player_hearts.append(heart)
 
@@ -172,36 +172,36 @@ func _create_health_hud() -> void:
 	_player_coords_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 0.8))
 	hud_layer.add_child(_player_coords_label)
 
-	# --- Energy bar: bottom-left ---
+	# --- Energy bar: top, under health ---
 	var energy_bg := ColorRect.new()
-	energy_bg.anchor_left = 0.0
-	energy_bg.anchor_top = 1.0
-	energy_bg.anchor_right = 0.0
-	energy_bg.anchor_bottom = 1.0
-	energy_bg.position = Vector2(10, -44)
-	energy_bg.size = Vector2(160, 36)
+	energy_bg.anchor_left = 0.5
+	energy_bg.anchor_top = 0.0
+	energy_bg.anchor_right = 0.5
+	energy_bg.anchor_bottom = 0.0
+	energy_bg.position = Vector2(-140, 38)
+	energy_bg.size = Vector2(138, 10)
 	energy_bg.color = Color(0.05, 0.05, 0.08, 0.6)
 	hud_layer.add_child(energy_bg)
 
 	var energy_label := Label.new()
-	energy_label.anchor_left = 0.0
-	energy_label.anchor_top = 1.0
-	energy_label.anchor_right = 0.0
-	energy_label.anchor_bottom = 1.0
-	energy_label.position = Vector2(16, -40)
-	energy_label.size = Vector2(60, 14)
+	energy_label.anchor_left = 0.5
+	energy_label.anchor_top = 0.0
+	energy_label.anchor_right = 0.5
+	energy_label.anchor_bottom = 0.0
+	energy_label.position = Vector2(-140, 37)
+	energy_label.size = Vector2(40, 8)
 	energy_label.text = "Energy"
-	energy_label.add_theme_font_size_override("font_size", 10)
+	energy_label.add_theme_font_size_override("font_size", 7)
 	energy_label.add_theme_color_override("font_color", Color(0.22, 0.52, 0.98, 1.0))
 	hud_layer.add_child(energy_label)
 
 	_energy_bar = ProgressBar.new()
-	_energy_bar.anchor_left = 0.0
-	_energy_bar.anchor_top = 1.0
-	_energy_bar.anchor_right = 0.0
-	_energy_bar.anchor_bottom = 1.0
-	_energy_bar.position = Vector2(14, -24)
-	_energy_bar.size = Vector2(152, 14)
+	_energy_bar.anchor_left = 0.5
+	_energy_bar.anchor_top = 0.0
+	_energy_bar.anchor_right = 0.5
+	_energy_bar.anchor_bottom = 0.0
+	_energy_bar.position = Vector2(-140, 38)
+	_energy_bar.size = Vector2(138, 10)
 	_energy_bar.min_value = 0
 	_energy_bar.max_value = 100
 	_energy_bar.value = 0
@@ -210,36 +210,36 @@ func _create_health_hud() -> void:
 	_energy_bar.add_theme_color_override("bg_color", Color(0.10, 0.10, 0.14, 0.8))
 	hud_layer.add_child(_energy_bar)
 
-	# --- Strength bar: bottom-right ---
+	# --- Strength bar: top, under health ---
 	var strength_bg := ColorRect.new()
-	strength_bg.anchor_left = 1.0
-	strength_bg.anchor_top = 1.0
-	strength_bg.anchor_right = 1.0
-	strength_bg.anchor_bottom = 1.0
-	strength_bg.position = Vector2(-170, -44)
-	strength_bg.size = Vector2(160, 36)
+	strength_bg.anchor_left = 0.5
+	strength_bg.anchor_top = 0.0
+	strength_bg.anchor_right = 0.5
+	strength_bg.anchor_bottom = 0.0
+	strength_bg.position = Vector2(2, 38)
+	strength_bg.size = Vector2(138, 10)
 	strength_bg.color = Color(0.05, 0.05, 0.08, 0.6)
 	hud_layer.add_child(strength_bg)
 
 	var strength_label := Label.new()
-	strength_label.anchor_left = 1.0
-	strength_label.anchor_top = 1.0
-	strength_label.anchor_right = 1.0
-	strength_label.anchor_bottom = 1.0
-	strength_label.position = Vector2(-164, -40)
-	strength_label.size = Vector2(60, 14)
+	strength_label.anchor_left = 0.5
+	strength_label.anchor_top = 0.0
+	strength_label.anchor_right = 0.5
+	strength_label.anchor_bottom = 0.0
+	strength_label.position = Vector2(2, 37)
+	strength_label.size = Vector2(50, 8)
 	strength_label.text = "Strength"
-	strength_label.add_theme_font_size_override("font_size", 10)
+	strength_label.add_theme_font_size_override("font_size", 7)
 	strength_label.add_theme_color_override("font_color", Color(0.62, 0.26, 0.86, 1.0))
 	hud_layer.add_child(strength_label)
 
 	_strength_bar = ProgressBar.new()
-	_strength_bar.anchor_left = 1.0
-	_strength_bar.anchor_top = 1.0
-	_strength_bar.anchor_right = 1.0
-	_strength_bar.anchor_bottom = 1.0
-	_strength_bar.position = Vector2(-166, -24)
-	_strength_bar.size = Vector2(152, 14)
+	_strength_bar.anchor_left = 0.5
+	_strength_bar.anchor_top = 0.0
+	_strength_bar.anchor_right = 0.5
+	_strength_bar.anchor_bottom = 0.0
+	_strength_bar.position = Vector2(2, 38)
+	_strength_bar.size = Vector2(138, 10)
 	_strength_bar.min_value = 0
 	_strength_bar.max_value = 100
 	_strength_bar.value = 0
@@ -425,9 +425,9 @@ func _set_player_hearts(health_percent: float) -> void:
 		if heart == null:
 			continue
 		if i < filled_hearts:
-			heart.add_theme_color_override("font_color", Color(0.95, 0.18, 0.22, 1.0))
+			heart.self_modulate = Color(0.95, 0.18, 0.22, 1.0)
 		else:
-			heart.add_theme_color_override("font_color", Color(0.35, 0.35, 0.35, 0.95))
+			heart.self_modulate = Color(0.35, 0.35, 0.35, 0.95)
 
 
 func _health_percent(target: Node) -> float:
@@ -992,6 +992,39 @@ func _build_pause_settings_dialog() -> void:
 		c.save("user://options.cfg")
 		if _player_node and _player_node.has_method("update_mobile_button_opacity"):
 			_player_node.call("update_mobile_button_opacity", v)
+	)
+
+	var size_row := HBoxContainer.new()
+	size_row.custom_minimum_size = Vector2(0, 32)
+	list.add_child(size_row)
+
+	var size_label := Label.new()
+	size_label.text = "Button Size"
+	size_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_row.add_child(size_label)
+
+	var size_slider := HSlider.new()
+	size_slider.min_value = 0.5
+	size_slider.max_value = 2.0
+	size_slider.step = 0.1
+	var saved_size := float(cfg.get_value("controls", "button_size", 1.0))
+	size_slider.value = saved_size
+	size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_slider.custom_minimum_size = Vector2(100, 0)
+	size_row.add_child(size_slider)
+
+	var size_value_label := Label.new()
+	size_value_label.text = "%d%%" % (saved_size * 100)
+	size_value_label.custom_minimum_size = Vector2(36, 0)
+	size_value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	size_row.add_child(size_value_label)
+
+	size_slider.value_changed.connect(func(v: float) -> void:
+		size_value_label.text = "%d%%" % (v * 100)
+		var c := ConfigFile.new()
+		c.load("user://options.cfg")
+		c.set_value("controls", "button_size", v)
+		c.save("user://options.cfg")
 	)
 
 

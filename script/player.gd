@@ -112,6 +112,11 @@ func _ensure_regeneration_timer() -> void:
 	add_child(_regeneration_timer)
 	_regeneration_timer.timeout.connect(_on_regeneration_tick)
 
+
+func _exit_tree() -> void:
+	if _regeneration_timer != null and _regeneration_timer.timeout.is_connected(_on_regeneration_tick):
+		_regeneration_timer.timeout.disconnect(_on_regeneration_tick)
+
 func die() -> void:
 	if is_alive:
 		is_alive = false
@@ -1032,10 +1037,19 @@ func _setup_mobile_controls_if_enabled() -> void:
 	if cfg.load(OPTIONS_PATH) == OK:
 		_mobile_controls_enabled = bool(cfg.get_value("controls", "mobile_controls", false))
 
+	# Auto-enable mobile controls on touch platforms (first launch only)
+	var platform := OS.get_name()
+	if platform == "Android" or platform == "iOS":
+		if not cfg.has_section_key("controls", "mobile_controls"):
+			_mobile_controls_enabled = true
+			cfg.set_value("controls", "mobile_controls", true)
+			cfg.save(OPTIONS_PATH)
+
 	if not _mobile_controls_enabled:
 		return
 
 	var btn_opacity := float(cfg.get_value("controls", "button_opacity", 0.85))
+	var btn_size := float(cfg.get_value("controls", "button_size", 1.0))
 
 	_mobile_layer = CanvasLayer.new()
 	_mobile_layer.layer = 120
@@ -1046,7 +1060,8 @@ func _setup_mobile_controls_if_enabled() -> void:
 	_mobile_btn_font.font_names = PackedStringArray(["Noto Sans", "Liberation Sans", "FreeSans", "sans-serif"])
 
 	var viewport_size := get_viewport_rect().size
-	_mobile_joystick_center = Vector2(90.0, viewport_size.y - 110.0)
+	_mobile_joystick_radius = 62.0 * btn_size
+	_mobile_joystick_center = Vector2(110.0, viewport_size.y - 120.0)
 
 	_mobile_joystick_base = Panel.new()
 	var base_style := StyleBoxFlat.new()
@@ -1063,29 +1078,30 @@ func _setup_mobile_controls_if_enabled() -> void:
 	_mobile_joystick_base.z_index = 200
 	_mobile_layer.add_child(_mobile_joystick_base)
 
+	var knob_size := 46.0 * btn_size
 	_mobile_joystick_knob = Panel.new()
 	var knob_style := StyleBoxFlat.new()
 	knob_style.bg_color = Color(0.96, 0.96, 1.0, 0.95)
-	knob_style.corner_radius_top_left = 23
-	knob_style.corner_radius_top_right = 23
-	knob_style.corner_radius_bottom_left = 23
-	knob_style.corner_radius_bottom_right = 23
+	knob_style.corner_radius_top_left = int(knob_size * 0.5)
+	knob_style.corner_radius_top_right = int(knob_size * 0.5)
+	knob_style.corner_radius_bottom_left = int(knob_size * 0.5)
+	knob_style.corner_radius_bottom_right = int(knob_size * 0.5)
 	_mobile_joystick_knob.add_theme_stylebox_override("panel", knob_style)
-	_mobile_joystick_knob.custom_minimum_size = Vector2(46, 46)
-	_mobile_joystick_knob.size = Vector2(46, 46)
+	_mobile_joystick_knob.custom_minimum_size = Vector2(knob_size, knob_size)
+	_mobile_joystick_knob.size = Vector2(knob_size, knob_size)
 	_mobile_joystick_knob.position = _mobile_joystick_center - _mobile_joystick_knob.size * 0.5
 	_mobile_joystick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_mobile_joystick_knob.z_index = 201
 	_mobile_layer.add_child(_mobile_joystick_knob)
 
-	var attack_d := 74.0
-	var sprint_d := 64.0
-	var heal_d := 56.0
-	var small_d := 50.0
-	var map_d := 46.0
+	var attack_d := 74.0 * btn_size
+	var sprint_d := 64.0 * btn_size
+	var heal_d := 56.0 * btn_size
+	var small_d := 50.0 * btn_size
+	var map_d := 46.0 * btn_size
 
-	var ax := viewport_size.x - 80.0
-	var ay := viewport_size.y - 90.0
+	var ax := viewport_size.x - 80.0 * btn_size
+	var ay := viewport_size.y - 90.0 * btn_size
 
 	_add_mobile_action_button("\u2694", Vector2(ax, ay), attack_d, btn_opacity, func() -> void:
 		_mobile_attack_pressed = true
@@ -1105,13 +1121,13 @@ func _setup_mobile_controls_if_enabled() -> void:
 		_mobile_map_pressed = false
 	)
 
-	_add_mobile_tap_button("\u2665", Vector2(ax, ay - 86.0), heal_d, btn_opacity, Callable(self, "_use_health_potion"))
+	_add_mobile_tap_button("\u2665", Vector2(ax, ay - 86.0 * btn_size), heal_d, btn_opacity, Callable(self, "_use_health_potion"))
 
 	var top_y := viewport_size.y * 0.22
-	_add_mobile_tap_button("\u2726", Vector2(viewport_size.x - 160.0, top_y), small_d, btn_opacity, Callable(self, "_use_strength_potion"))
-	_add_mobile_tap_button("\u2605", Vector2(viewport_size.x - 90.0, top_y), small_d, btn_opacity, Callable(self, "_use_energy_drink"))
-	_add_mobile_tap_button("\u2600", Vector2(viewport_size.x - 230.0, top_y), small_d, btn_opacity, Callable(self, "_toggle_mobile_lamp"))
-	_add_mobile_tap_button("E", Vector2(viewport_size.x - 300.0, top_y), small_d, btn_opacity, Callable(self, "_mobile_interact"))
+	_add_mobile_tap_button("\u2726", Vector2(viewport_size.x - 160.0 * btn_size, top_y), small_d, btn_opacity, Callable(self, "_use_strength_potion"))
+	_add_mobile_tap_button("\u2605", Vector2(viewport_size.x - 90.0 * btn_size, top_y), small_d, btn_opacity, Callable(self, "_use_energy_drink"))
+	_add_mobile_tap_button("\u2600", Vector2(viewport_size.x - 230.0 * btn_size, top_y), small_d, btn_opacity, Callable(self, "_toggle_mobile_lamp"))
+	_add_mobile_tap_button("E", Vector2(viewport_size.x - 300.0 * btn_size, top_y), small_d, btn_opacity, Callable(self, "_mobile_interact"))
 
 
 func _add_mobile_action_button(label_text: String, center_pos: Vector2, diameter: float, opacity: float, on_press: Callable, on_release: Callable) -> void:

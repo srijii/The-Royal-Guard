@@ -42,6 +42,7 @@ var _spell_spawn_cooldown: float = 6.0
 var _spell_lifetime: float = 6.0
 var _dizziness_warning_label: Label = null
 var _active_potion_drops: int = 0
+var _potion_drop_refs: Array[WeakRef] = []
 
 
 func _ready() -> void:
@@ -104,6 +105,15 @@ func _process(_delta: float) -> void:
 	_update_dizziness_warning()
 
 
+func _exit_tree() -> void:
+	for ref in _potion_drop_refs:
+		var pickup = ref.get_ref() as Node
+		if pickup != null and is_instance_valid(pickup) and pickup.is_inside_tree():
+			if pickup.tree_exiting.is_connected(_on_potion_drop_removed):
+				pickup.tree_exiting.disconnect(_on_potion_drop_removed)
+	_potion_drop_refs.clear()
+
+
 func _configure_player_for_final_boss(player: Node2D) -> void:
 	var max_health: int = maxi(10, boss_player_hearts * 10)
 	player.set("max_health", max_health)
@@ -159,7 +169,7 @@ func _setup_life_ui() -> void:
 		var heart := Label.new()
 		heart.text = "♥"
 		heart.add_theme_font_size_override("font_size", 18)
-		heart.add_theme_color_override("font_color", Color(0.35, 0.35, 0.35, 0.95))
+		heart.self_modulate = Color(0.35, 0.35, 0.35, 0.95)
 		hearts_row.add_child(heart)
 		_player_hearts.append(heart)
 
@@ -176,36 +186,36 @@ func _setup_life_ui() -> void:
 	_player_coords_label.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7, 0.8))
 	hud.add_child(_player_coords_label)
 
-	# --- Energy bar: bottom-left ---
+	# --- Energy bar: top, under health ---
 	var energy_bg := ColorRect.new()
-	energy_bg.anchor_left = 0.0
-	energy_bg.anchor_top = 1.0
-	energy_bg.anchor_right = 0.0
-	energy_bg.anchor_bottom = 1.0
-	energy_bg.position = Vector2(10, -44)
-	energy_bg.size = Vector2(160, 36)
+	energy_bg.anchor_left = 0.5
+	energy_bg.anchor_top = 0.0
+	energy_bg.anchor_right = 0.5
+	energy_bg.anchor_bottom = 0.0
+	energy_bg.position = Vector2(-140, 38)
+	energy_bg.size = Vector2(138, 10)
 	energy_bg.color = Color(0.05, 0.05, 0.08, 0.6)
 	hud.add_child(energy_bg)
 
 	var energy_label := Label.new()
-	energy_label.anchor_left = 0.0
-	energy_label.anchor_top = 1.0
-	energy_label.anchor_right = 0.0
-	energy_label.anchor_bottom = 1.0
-	energy_label.position = Vector2(16, -40)
-	energy_label.size = Vector2(60, 14)
+	energy_label.anchor_left = 0.5
+	energy_label.anchor_top = 0.0
+	energy_label.anchor_right = 0.5
+	energy_label.anchor_bottom = 0.0
+	energy_label.position = Vector2(-140, 37)
+	energy_label.size = Vector2(40, 8)
 	energy_label.text = "Energy"
-	energy_label.add_theme_font_size_override("font_size", 10)
+	energy_label.add_theme_font_size_override("font_size", 7)
 	energy_label.add_theme_color_override("font_color", Color(0.22, 0.52, 0.98, 1.0))
 	hud.add_child(energy_label)
 
 	_energy_bar = ProgressBar.new()
-	_energy_bar.anchor_left = 0.0
-	_energy_bar.anchor_top = 1.0
-	_energy_bar.anchor_right = 0.0
-	_energy_bar.anchor_bottom = 1.0
-	_energy_bar.position = Vector2(14, -24)
-	_energy_bar.size = Vector2(152, 14)
+	_energy_bar.anchor_left = 0.5
+	_energy_bar.anchor_top = 0.0
+	_energy_bar.anchor_right = 0.5
+	_energy_bar.anchor_bottom = 0.0
+	_energy_bar.position = Vector2(-140, 38)
+	_energy_bar.size = Vector2(138, 10)
 	_energy_bar.min_value = 0
 	_energy_bar.max_value = 100
 	_energy_bar.value = 0
@@ -214,36 +224,36 @@ func _setup_life_ui() -> void:
 	_energy_bar.add_theme_color_override("bg_color", Color(0.10, 0.10, 0.14, 0.8))
 	hud.add_child(_energy_bar)
 
-	# --- Strength bar: bottom-right ---
+	# --- Strength bar: top, under health ---
 	var strength_bg := ColorRect.new()
-	strength_bg.anchor_left = 1.0
-	strength_bg.anchor_top = 1.0
-	strength_bg.anchor_right = 1.0
-	strength_bg.anchor_bottom = 1.0
-	strength_bg.position = Vector2(-170, -44)
-	strength_bg.size = Vector2(160, 36)
+	strength_bg.anchor_left = 0.5
+	strength_bg.anchor_top = 0.0
+	strength_bg.anchor_right = 0.5
+	strength_bg.anchor_bottom = 0.0
+	strength_bg.position = Vector2(2, 38)
+	strength_bg.size = Vector2(138, 10)
 	strength_bg.color = Color(0.05, 0.05, 0.08, 0.6)
 	hud.add_child(strength_bg)
 
 	var strength_label := Label.new()
-	strength_label.anchor_left = 1.0
-	strength_label.anchor_top = 1.0
-	strength_label.anchor_right = 1.0
-	strength_label.anchor_bottom = 1.0
-	strength_label.position = Vector2(-164, -40)
-	strength_label.size = Vector2(60, 14)
+	strength_label.anchor_left = 0.5
+	strength_label.anchor_top = 0.0
+	strength_label.anchor_right = 0.5
+	strength_label.anchor_bottom = 0.0
+	strength_label.position = Vector2(2, 37)
+	strength_label.size = Vector2(50, 8)
 	strength_label.text = "Strength"
-	strength_label.add_theme_font_size_override("font_size", 10)
+	strength_label.add_theme_font_size_override("font_size", 7)
 	strength_label.add_theme_color_override("font_color", Color(0.62, 0.26, 0.86, 1.0))
 	hud.add_child(strength_label)
 
 	_strength_bar = ProgressBar.new()
-	_strength_bar.anchor_left = 1.0
-	_strength_bar.anchor_top = 1.0
-	_strength_bar.anchor_right = 1.0
-	_strength_bar.anchor_bottom = 1.0
-	_strength_bar.position = Vector2(-166, -24)
-	_strength_bar.size = Vector2(152, 14)
+	_strength_bar.anchor_left = 0.5
+	_strength_bar.anchor_top = 0.0
+	_strength_bar.anchor_right = 0.5
+	_strength_bar.anchor_bottom = 0.0
+	_strength_bar.position = Vector2(2, 38)
+	_strength_bar.size = Vector2(138, 10)
 	_strength_bar.min_value = 0
 	_strength_bar.max_value = 100
 	_strength_bar.value = 0
@@ -407,9 +417,9 @@ func _set_player_hearts(health_percent: float) -> void:
 		if heart == null:
 			continue
 		if i < filled_hearts:
-			heart.add_theme_color_override("font_color", Color(0.95, 0.18, 0.22, 1.0))
+			heart.self_modulate = Color(0.95, 0.18, 0.22, 1.0)
 		else:
-			heart.add_theme_color_override("font_color", Color(0.35, 0.35, 0.35, 0.95))
+			heart.self_modulate = Color(0.35, 0.35, 0.35, 0.95)
 
 
 func _update_hud() -> void:
@@ -1066,6 +1076,7 @@ func _spawn_potion_at(potion_type: String, tint: Color, p_position: Vector2) -> 
 	add_child(pickup)
 	_active_potion_drops += 1
 	pickup.tree_exiting.connect(_on_potion_drop_removed)
+	_potion_drop_refs.append(weakref(pickup))
 	call_deferred("_check_potion_auto_collect", pickup, potion_type)
 
 	var base_y := pickup.position.y
