@@ -1,7 +1,7 @@
 [gd_scene format=3 uid="uid://qlfhaq4i31hy"]
 
 [ext_resource type="PackedScene" path="res://scene/player.tscn" id="1_pjass"]
-[ext_resource type="Texture2D" uid="uid://4smgi57urss0" path="res://tileset/palace-nolight.png" id="2_txmk2"]
+[ext_resource type="Texture2D" uid="uid://bin6rec40dpg0" path="res://tileset/palace-nolight.png" id="2_txmk2"]
 [ext_resource type="Texture2D" uid="uid://yleohcevi5qq" path="res://tileset/walls.png" id="3_w4qq1"]
 [ext_resource type="Texture2D" uid="uid://w2tspkf0hk07" path="res://tileset/throne1.png" id="4_m5mgf"]
 [ext_resource type="Texture2D" uid="uid://12h4how4uhe4" path="res://tileset/roof.png" id="5_emkrx"]
