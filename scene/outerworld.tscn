@@ -1,14 +1,14 @@
-[gd_scene load_steps=19 format=3]
+[gd_scene format=3 uid="uid://b7gqhxlfbp0ny"]
 
-[ext_resource type="Texture2D" path="res://art/tileset/Wall_Variations.png" id="1_1qhke"]
-[ext_resource type="Texture2D" path="res://art/tileset/Dungeon_Tiles.png" id="1_jyr7m"]
+[ext_resource type="Texture2D" uid="uid://b4qj3urrqtksn" path="res://art/tileset/Wall_Variations.png" id="1_1qhke"]
+[ext_resource type="Texture2D" uid="uid://cyx1kstnekqi" path="res://art/tileset/Dungeon_Tiles.png" id="1_jyr7m"]
 [ext_resource type="PackedScene" path="res://scene/player.tscn" id="1_player"]
-[ext_resource type="Texture2D" path="res://art/tileset/floor-water.png" id="2_1qhke"]
-[ext_resource type="Texture2D" path="res://art/tileset/Wall_Tiles.png" id="3_sajx5"]
-[ext_resource type="Texture2D" path="res://art/tileset/free_pixel_16_woods.png" id="4_4341p"]
-[ext_resource type="Texture2D" path="res://art/tileset/rock-veg.png" id="5_rqqya"]
-[ext_resource type="Script" path="res://script/outerworld.gd" id="8_outerworld"]
-[ext_resource type="Script" path="res://script/death_screen.gd" id="death_screen"]
+[ext_resource type="Texture2D" uid="uid://d3ejqkrql016w" path="res://art/tileset/floor-water.png" id="2_1qhke"]
+[ext_resource type="Texture2D" uid="uid://ynk827u5owhs" path="res://art/tileset/Wall_Tiles.png" id="3_sajx5"]
+[ext_resource type="Texture2D" uid="uid://bfx6n6ayibj76" path="res://art/tileset/free_pixel_16_woods.png" id="4_4341p"]
+[ext_resource type="Texture2D" uid="uid://bq6axyxu21kh3" path="res://art/tileset/rock-veg.png" id="5_rqqya"]
+[ext_resource type="Script" uid="uid://csf86orwrmwxv" path="res://script/outerworld.gd" id="8_outerworld"]
+[ext_resource type="Script" uid="uid://oad4782vya6y" path="res://script/death_screen.gd" id="death_screen"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_sajx5"]
 texture = ExtResource("1_1qhke")
@@ -1338,9 +1338,7 @@ texture = ExtResource("5_rqqya")
 0:1/size_in_atlas = Vector2i(2, 3)
 0:1/0 = 0
 0:1/0/y_sort_origin = 15
-0:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-5.2159023, 23.02192, -3.7770329, 16.187286, 4.856186, 15.467851, 7.733925, 22.122623)
-0:1/0/physics_layer_0/polygon_1/points = PackedVector2Array(-13.849122, -2.3381634, -6.115196, 5.75548, -8, 8)
-0:1/0/physics_layer_0/polygon_2/points = PackedVector2Array(5.75548, 8, 12.230392, 1.6187286, 10.971382, -0.8992939)
+0:1/0/physics_layer_0/polygon_0/points = PackedVector2Array(-13.129687, 5.3957634, 0, 2.5180225, 13.669262, 5.036045, 13.849121, 14.3887005, 10.251947, 19.424742, 3.5971737, 22.662199, -9.89223, 22.122625, -14.748416, 14.028982)
 0:4/0 = 0
 0:4/0/y_sort_origin = -4
 0:4/0/physics_layer_0/polygon_0/points = PackedVector2Array(-1.4213581, -0.10152578, 1.015255, -0.20305157, 1.6244087, 0.91372967, 1.015255, 2.2335615, -1.6244092, 2.3350878, -2.5381393, 1.4213572)
@@ -1732,13 +1730,13 @@ size = Vector2(403, 64)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_5osv1"]
 size = Vector2(64, 91)
 
-[node name="Node2D" type="Node2D"]
+[node name="Node2D" type="Node2D" unique_id=1802153701]
 y_sort_enabled = true
 position = Vector2(-1, 1)
 script = ExtResource("8_outerworld")
 metadata/_edit_horizontal_guides_ = [483.0]
 
-[node name="TileMap" type="TileMap" parent="."]
+[node name="TileMap" type="TileMap" parent="." unique_id=91420399]
 y_sort_enabled = true
 tile_set = SubResource("TileSet_7w1w8")
 format = 2
@@ -1754,29 +1752,29 @@ layer_2/tile_data = PackedInt32Array(458756, 131083, 18, 393220, 196619, 14, 327
 layer_3/name = "Layer3"
 layer_3/z_index = -2
 
-[node name="player" parent="." instance=ExtResource("1_player")]
+[node name="player" parent="." unique_id=535149456 instance=ExtResource("1_player")]
 position = Vector2(261, 18)
 scale = Vector2(1.7, 1.7)
 speed = 130.0
 camera_zoom = Vector2(2, 2)
 attack_damage = 30
 
-[node name="OuterworldBlocker" type="StaticBody2D" parent="."]
+[node name="OuterworldBlocker" type="StaticBody2D" parent="." unique_id=645448144]
 position = Vector2(200.5, -31)
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="OuterworldBlocker"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="OuterworldBlocker" unique_id=188351328]
 shape = SubResource("RectangleShape2D_505cl")
 
-[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="OuterworldBlocker"]
+[node name="CollisionPolygon2D" type="CollisionPolygon2D" parent="OuterworldBlocker" unique_id=1901626693]
 polygon = PackedVector2Array(2360.5, 1423, 2361.5, 1549, 2432.5, 1549, 2432.5, 1484, 2485.5, 1483, 2482.5, 1546, 2551.5, 1552, 2553.5, 1693, 2556.5, 1692, 2552.5, 1541, 2551.5, 1422)
 
-[node name="OuterworldGateArea" type="Area2D" parent="."]
+[node name="OuterworldGateArea" type="Area2D" parent="." unique_id=127505073]
 position = Vector2(200.5, -31)
 collision_layer = 0
 
-[node name="CollisionShape2D" type="CollisionShape2D" parent="OuterworldGateArea"]
+[node name="CollisionShape2D" type="CollisionShape2D" parent="OuterworldGateArea" unique_id=633834063]
 position = Vector2(2455.5, 1536.5)
 shape = SubResource("RectangleShape2D_5osv1")
 
-[node name="DeathScreen" type="CanvasLayer" parent="."]
+[node name="DeathScreen" type="CanvasLayer" parent="." unique_id=1817148718]
 script = ExtResource("death_screen")

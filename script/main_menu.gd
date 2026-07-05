@@ -28,10 +28,19 @@ var _settings_popup: AcceptDialog = null
 
 func _ready():
 	_ensure_default_bind_actions()
+	_set_menu_background()
 	_apply_royal_theme()
 	_build_settings_popup()
 	if _continue_button:
 		_continue_button.disabled = not FileAccess.file_exists(SAVE_PATH)
+
+
+func _set_menu_background():
+	var bg := get_node_or_null("Background") as TextureRect
+	if bg:
+		var tex := load("res://art/backgrounds/menu.png") as Texture2D
+		if tex:
+			bg.texture = tex
 
 
 func _on_new_game_pressed():
@@ -437,7 +446,7 @@ func _get_mobile_button_size() -> float:
 	var cfg := ConfigFile.new()
 	if cfg.load(OPTIONS_PATH) != OK:
 		return 1.0
-	return float(cfg.get_value("controls", "button_size", 1.0))
+	return float(cfg.get_value("controls", "button_size", 1.4))
 
 
 func _save_button_size(value: float) -> void:

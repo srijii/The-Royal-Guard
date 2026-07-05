@@ -654,37 +654,22 @@ func _create_door_gate_ui() -> void:
 		_door_loading_layer.visible = false
 		add_child(_door_loading_layer)
 
-		var bg := ColorRect.new()
+		var bg := TextureRect.new()
 		bg.anchor_left = 0.0
 		bg.anchor_top = 0.0
 		bg.anchor_right = 1.0
 		bg.anchor_bottom = 1.0
-		bg.color = Color(0.0, 0.0, 0.0, 1.0)
+		bg.texture = load("res://art/backgrounds/loading.png")
+		bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		_door_loading_layer.add_child(bg)
-
-		_door_loading_title = Label.new()
-		_door_loading_title.anchor_left = 0.5
-		_door_loading_title.anchor_top = 0.35
-		_door_loading_title.anchor_right = 0.5
-		_door_loading_title.anchor_bottom = 0.35
-		_door_loading_title.position = Vector2(-200, 0)
-		_door_loading_title.size = Vector2(400, 60)
-		_door_loading_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_door_loading_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_door_loading_title.add_theme_font_size_override("font_size", 38)
-		_door_loading_title.add_theme_color_override("font_color", Color(0.85, 0.78, 0.55, 1.0))
-		_door_loading_title.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.9))
-		_door_loading_title.add_theme_constant_override("shadow_offset_x", 2)
-		_door_loading_title.add_theme_constant_override("shadow_offset_y", 2)
-		_door_loading_title.text = "The Royal Guard"
-		_door_loading_layer.add_child(_door_loading_title)
 
 		_door_loading_bar = ProgressBar.new()
 		_door_loading_bar.anchor_left = 0.5
-		_door_loading_bar.anchor_top = 0.5
+		_door_loading_bar.anchor_top = 1.0
 		_door_loading_bar.anchor_right = 0.5
-		_door_loading_bar.anchor_bottom = 0.5
-		_door_loading_bar.position = Vector2(-150, 40)
+		_door_loading_bar.anchor_bottom = 1.0
+		_door_loading_bar.position = Vector2(-150, -30)
 		_door_loading_bar.size = Vector2(300, 6)
 		_door_loading_bar.min_value = 0.0
 		_door_loading_bar.max_value = 100.0
@@ -1007,7 +992,7 @@ func _build_pause_settings_dialog() -> void:
 	size_slider.min_value = 0.5
 	size_slider.max_value = 2.0
 	size_slider.step = 0.1
-	var saved_size := float(cfg.get_value("controls", "button_size", 1.0))
+	var saved_size := float(cfg.get_value("controls", "button_size", 1.4))
 	size_slider.value = saved_size
 	size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_slider.custom_minimum_size = Vector2(100, 0)

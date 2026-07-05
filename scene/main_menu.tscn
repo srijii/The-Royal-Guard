@@ -1,90 +1,81 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene format=3 uid="uid://dm7bups43miv3"]
 
-[ext_resource type="Script" path="res://script/main_menu.gd" id="1_2n3jf"]
+[ext_resource type="Script" uid="uid://doflgro71pui0" path="res://script/main_menu.gd" id="1_2n3jf"]
+[ext_resource type="Texture2D" uid="uid://dr4cryvr73i7c" path="res://art/backgrounds/menu.png" id="2_menu"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_title"]
 font_size = 42
 font_color = Color(1, 0.84, 0, 1)
 
-[node name="MainMenu" type="Control"]
+[node name="MainMenu" type="Control" unique_id=1862210215]
 layout_mode = 3
-anchors_left = 0.0
-anchors_top = 0.0
-anchors_right = 1.0
-anchors_bottom = 1.0
+anchors_preset = 0
 script = ExtResource("1_2n3jf")
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="." unique_id=686307459]
 layout_mode = 1
-anchors_left = 0.0
-anchors_top = 0.0
-anchors_right = 1.0
-anchors_bottom = 1.0
-color = Color(0.1, 0.05, 0.15, 1)
+texture = ExtResource("2_menu")
+expand_mode = 3
+stretch_mode = 6
 
-[node name="UICamera" type="Camera2D" parent="."]
-enabled = true
+[node name="UICamera" type="Camera2D" parent="." unique_id=132073275]
 
-[node name="PanelContainer" type="PanelContainer" parent="."]
+[node name="PanelContainer" type="PanelContainer" parent="." unique_id=636755182]
 layout_mode = 1
-anchors_left = 0.5
-anchors_top = 0.5
-anchors_right = 0.5
-anchors_bottom = 0.5
 offset_left = -190.0
 offset_top = -230.0
 offset_right = 190.0
 offset_bottom = 230.0
 
-[node name="MarginContainer" type="MarginContainer" parent="PanelContainer"]
+[node name="MarginContainer" type="MarginContainer" parent="PanelContainer" unique_id=1239366006]
 layout_mode = 2
 theme_override_constants/margin_left = 24
 theme_override_constants/margin_top = 24
 theme_override_constants/margin_right = 24
 theme_override_constants/margin_bottom = 24
 
-[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="PanelContainer/MarginContainer" unique_id=1669170518]
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Title" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Title" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=292220854]
 layout_mode = 2
 text = "ROYAL GUARD"
 label_settings = SubResource("LabelSettings_title")
 horizontal_alignment = 1
 
-[node name="Subtitle" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer"]
+[node name="Subtitle" type="Label" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=353803725]
 layout_mode = 2
 text = "Choose an option"
 horizontal_alignment = 1
 
-[node name="Spacer1" type="Control" parent="PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
+[node name="Spacer1" type="Control" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1310622608]
 custom_minimum_size = Vector2(0, 8)
-
-[node name="NewGameButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
 layout_mode = 2
+
+[node name="NewGameButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=174101217]
 custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
 text = "New Game"
 
-[node name="ContinueButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
+[node name="ContinueButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=1156846847]
 custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
 text = "Continue"
 
-[node name="SettingsButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
+[node name="SettingsButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=200169332]
 custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
 text = "Settings"
 
-[node name="CreditsButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
+[node name="CreditsButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=903991218]
 custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
 text = "Credits"
 
-[node name="ExitButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer"]
-layout_mode = 2
+[node name="ExitButton" type="Button" parent="PanelContainer/MarginContainer/VBoxContainer" unique_id=643431663]
 custom_minimum_size = Vector2(0, 48)
+layout_mode = 2
 text = "Exit Game"
 
 [connection signal="pressed" from="PanelContainer/MarginContainer/VBoxContainer/NewGameButton" to="." method="_on_new_game_pressed"]

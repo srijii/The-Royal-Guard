@@ -137,6 +137,7 @@ var _death_overlay_layer: CanvasLayer = null
 var _death_overlay_fade: ColorRect = null
 var _death_overlay_logo: Label = null
 var _death_overlay_loading: ProgressBar = null
+var _death_overlay_loading_bg: TextureRect = null
 var _death_overlay_respawn_button: Button = null
 var _death_overlay_you_died_label: Label = null
 var _death_sequence_started := false
@@ -696,7 +697,7 @@ func _build_pause_settings_dialog() -> void:
 	size_slider.min_value = 0.5
 	size_slider.max_value = 2.0
 	size_slider.step = 0.1
-	var saved_size := float(cfg.get_value("controls", "button_size", 1.0))
+	var saved_size := float(cfg.get_value("controls", "button_size", 1.4))
 	size_slider.value = saved_size
 	size_slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	size_slider.custom_minimum_size = Vector2(100, 0)
@@ -1951,12 +1952,23 @@ func _create_death_overlay() -> void:
 	_death_overlay_logo.visible = false
 	_death_overlay_layer.add_child(_death_overlay_logo)
 
+	_death_overlay_loading_bg = TextureRect.new()
+	_death_overlay_loading_bg.anchor_left = 0.0
+	_death_overlay_loading_bg.anchor_top = 0.0
+	_death_overlay_loading_bg.anchor_right = 1.0
+	_death_overlay_loading_bg.anchor_bottom = 1.0
+	_death_overlay_loading_bg.texture = load("res://art/backgrounds/loading.png")
+	_death_overlay_loading_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	_death_overlay_loading_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_death_overlay_loading_bg.visible = false
+	_death_overlay_layer.add_child(_death_overlay_loading_bg)
+
 	_death_overlay_loading = ProgressBar.new()
 	_death_overlay_loading.anchor_left = 0.5
-	_death_overlay_loading.anchor_top = 0.5
+	_death_overlay_loading.anchor_top = 1.0
 	_death_overlay_loading.anchor_right = 0.5
-	_death_overlay_loading.anchor_bottom = 0.5
-	_death_overlay_loading.position = Vector2(-150, 40)
+	_death_overlay_loading.anchor_bottom = 1.0
+	_death_overlay_loading.position = Vector2(-150, -30)
 	_death_overlay_loading.size = Vector2(300, 6)
 	_death_overlay_loading.min_value = 0.0
 	_death_overlay_loading.max_value = 100.0
@@ -2056,7 +2068,8 @@ func _run_death_sequence() -> void:
 	_death_overlay_respawn_button.visible = false
 	_death_overlay_fade.color = Color(0.0, 0.0, 0.0, 1.0)
 	
-	_death_overlay_logo.visible = true
+	_death_overlay_logo.visible = false
+	_death_overlay_loading_bg.visible = true
 	_death_overlay_loading.visible = true
 	
 	var elapsed := 0.0

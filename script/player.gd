@@ -1049,7 +1049,7 @@ func _setup_mobile_controls_if_enabled() -> void:
 		return
 
 	var btn_opacity := float(cfg.get_value("controls", "button_opacity", 0.85))
-	var btn_size := float(cfg.get_value("controls", "button_size", 1.0))
+	var btn_size := float(cfg.get_value("controls", "button_size", 1.4))
 
 	_mobile_layer = CanvasLayer.new()
 	_mobile_layer.layer = 120
@@ -1128,6 +1128,8 @@ func _setup_mobile_controls_if_enabled() -> void:
 	_add_mobile_tap_button("\u2605", Vector2(viewport_size.x - 90.0 * btn_size, top_y), small_d, btn_opacity, Callable(self, "_use_energy_drink"))
 	_add_mobile_tap_button("\u2600", Vector2(viewport_size.x - 230.0 * btn_size, top_y), small_d, btn_opacity, Callable(self, "_toggle_mobile_lamp"))
 	_add_mobile_tap_button("E", Vector2(viewport_size.x - 300.0 * btn_size, top_y), small_d, btn_opacity, Callable(self, "_mobile_interact"))
+
+	_add_mobile_pause_button()
 
 
 func _add_mobile_action_button(label_text: String, center_pos: Vector2, diameter: float, opacity: float, on_press: Callable, on_release: Callable) -> void:
@@ -1273,6 +1275,68 @@ func _mobile_interact() -> void:
 	Input.parse_input_event(ev)
 	ev = InputEventKey.new()
 	ev.keycode = KEY_E
+	ev.pressed = false
+	Input.parse_input_event(ev)
+
+
+func _add_mobile_pause_button() -> void:
+	if _mobile_layer == null:
+		return
+
+	var pause_btn := Panel.new()
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(0.08, 0.10, 0.18, 0.7)
+	style.border_color = Color(0.78, 0.60, 0.24, 0.5)
+	style.border_width_left = 1
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 1
+	style.corner_radius_top_left = 6
+	style.corner_radius_top_right = 6
+	style.corner_radius_bottom_left = 6
+	style.corner_radius_bottom_right = 6
+	pause_btn.add_theme_stylebox_override("panel", style)
+	pause_btn.custom_minimum_size = Vector2(32, 32)
+	pause_btn.size = Vector2(32, 32)
+	pause_btn.position = Vector2(8, 8)
+	pause_btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	pause_btn.z_index = 200
+	_mobile_layer.add_child(pause_btn)
+
+	var pause_label := Label.new()
+	pause_label.text = "||"
+	pause_label.add_theme_font_size_override("font_size", 12)
+	pause_label.add_theme_color_override("font_color", Color(0.91, 0.86, 0.75, 0.9))
+	pause_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pause_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	pause_label.size = Vector2(32, 32)
+	pause_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pause_label.z_index = 201
+	pause_btn.add_child(pause_label)
+
+	var touch_area := Control.new()
+	touch_area.position = Vector2(0, 0)
+	touch_area.size = Vector2(32, 32)
+	touch_area.mouse_filter = Control.MOUSE_FILTER_STOP
+	touch_area.z_index = 202
+	pause_btn.add_child(touch_area)
+
+	var btn := Button.new()
+	btn.flat = true
+	btn.size = Vector2(32, 32)
+	btn.mouse_filter = Control.MOUSE_FILTER_STOP
+	btn.pressed.connect(_mobile_pause)
+	btn.z_index = 203
+	touch_area.add_child(btn)
+
+
+func _mobile_pause() -> void:
+	var ev := InputEventKey.new()
+	ev.keycode = KEY_ESCAPE
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	ev = InputEventKey.new()
+	ev.keycode = KEY_ESCAPE
 	ev.pressed = false
 	Input.parse_input_event(ev)
 
