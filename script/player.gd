@@ -1107,7 +1107,7 @@ func _setup_mobile_controls_if_enabled() -> void:
 
 	_add_mobile_tap_button("\u2665", Vector2(ax, ay - 86.0), heal_d, btn_opacity, Callable(self, "_use_health_potion"))
 
-	var top_y := viewport_size.y * 0.15
+	var top_y := viewport_size.y * 0.22
 	_add_mobile_tap_button("\u2726", Vector2(viewport_size.x - 160.0, top_y), small_d, btn_opacity, Callable(self, "_use_strength_potion"))
 	_add_mobile_tap_button("\u2605", Vector2(viewport_size.x - 90.0, top_y), small_d, btn_opacity, Callable(self, "_use_energy_drink"))
 	_add_mobile_tap_button("\u2600", Vector2(viewport_size.x - 230.0, top_y), small_d, btn_opacity, Callable(self, "_toggle_mobile_lamp"))

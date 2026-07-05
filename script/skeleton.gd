@@ -8,8 +8,10 @@ func _is_player_target(body: Node) -> bool:
 signal ring_stolen
 signal requested_backup(spawn_position: Vector2)
 
-var health = 99999
+var health = 150
 var current_health = health
+var _is_mini := false
+var _mini_generation := 0
 @onready var healthBar = $healthBar
 @onready var wander_controller = $WanderController
 @export var auto_regen_below_percent := 40.0
@@ -116,8 +118,14 @@ func _ready():
 	randomize()
 	add_to_group("enemy")
 	start_position = position
+	healthBar.max_value = health
 	healthBar.value = current_health
 	_sprite_base_position = $AnimatedSprite2D.position
+	
+	if _is_mini:
+		$healthBar.scale = Vector2(0.7, 0.7)
+		$healthBar.position = Vector2($healthBar.position.x, $healthBar.position.y - 8)
+	
 	# Find and set the player as initial target
 	var root = get_tree().root
 	for child in root.get_children():
@@ -696,14 +704,20 @@ func enemy():
 
 
 func take_damage(damage: int):
+	if is_dead:
+		return
 	Helpers.spawn_blood_effect(global_position)
 	Helpers.spawn_blood_stain(global_position)
 	$skeletonHit.play()
 	$AnimatedSprite2D.play("hit")
 	_force_target_player_after_hit()
+	current_health = max(0, current_health - damage)
+	healthBar.value = current_health
 	_total_damage_taken += damage
 	if not _is_rage_active and _total_damage_taken >= rage_damage_threshold:
 		_activate_rage_mode()
+	if current_health <= 0:
+		death()
 
 
 func _force_target_player_after_hit() -> void:
@@ -747,15 +761,38 @@ func _update_auto_regen(delta: float) -> void:
 
 
 func death():
-	_add_shooting_progress(10.0) # Bonus for kill
+	if is_dead:
+		return
 	is_dead = true
+	_add_shooting_progress(10.0)
 	$skeletonDies.play()
 	$AnimatedSprite2D.play("dead")
-	
 	healthBar.visible = false
 	$HitBox/CollisionShape2D.disabled = true
 	$DetectionArea/CollisionShape2D.disabled = true
+	
+	if _mini_generation < 3:
+		_spawn_mini_skeletons()
+	
 	$DeathTimer.start()
+
+
+func _spawn_mini_skeletons() -> void:
+	var skeleton_scene = preload("res://scene/skeleton.tscn")
+	for i in range(2):
+		var mini_sk := skeleton_scene.instantiate()
+		mini_sk._is_mini = true
+		mini_sk._mini_generation = _mini_generation + 1
+		var scale_factor := pow(0.6, mini_sk._mini_generation)
+		mini_sk.scale = Vector2(scale_factor, scale_factor)
+		mini_sk.health = int(150 * scale_factor)
+		mini_sk.current_health = mini_sk.health
+		mini_sk.move_speed = move_speed * (1.0 + 0.2 * mini_sk._mini_generation)
+		mini_sk.rage_damage_threshold = int(rage_damage_threshold * scale_factor)
+		var offset := Vector2(randf_range(-20, 20), randf_range(-20, 20))
+		mini_sk.global_position = global_position + offset
+		mini_sk.start_position = mini_sk.global_position
+		get_tree().current_scene.add_child(mini_sk)
 	
 
 func _on_hit_box_area_entered(area):

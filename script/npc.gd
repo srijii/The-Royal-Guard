@@ -475,6 +475,32 @@ func _create_dialogue_ui() -> void:
 	continue_label.add_theme_constant_override("outline_size", 2)
 	_continue_row.add_child(continue_label)
 
+	var next_button := Button.new()
+	next_button.text = "Next >"
+	next_button.custom_minimum_size = Vector2(80, 28)
+	next_button.add_theme_font_override("font", handwritten_font)
+	next_button.add_theme_font_size_override("font_size", 14)
+	next_button.pressed.connect(_on_next_button_pressed)
+	var btn_style := StyleBoxFlat.new()
+	btn_style.bg_color = Color(0.2, 0.15, 0.09, 0.96)
+	btn_style.border_color = Color(0.88, 0.78, 0.58, 0.7)
+	btn_style.border_width_left = 1
+	btn_style.border_width_top = 1
+	btn_style.border_width_right = 1
+	btn_style.border_width_bottom = 1
+	btn_style.corner_radius_top_left = 5
+	btn_style.corner_radius_top_right = 5
+	btn_style.corner_radius_bottom_left = 5
+	btn_style.corner_radius_bottom_right = 5
+	next_button.add_theme_stylebox_override("normal", btn_style)
+	var btn_hover := btn_style.duplicate()
+	btn_hover.bg_color = Color(0.3, 0.22, 0.12, 0.96)
+	next_button.add_theme_stylebox_override("hover", btn_hover)
+	var btn_pressed := btn_style.duplicate()
+	btn_pressed.bg_color = Color(0.15, 0.1, 0.06, 0.96)
+	next_button.add_theme_stylebox_override("pressed", btn_pressed)
+	_continue_row.add_child(next_button)
+
 	_update_dialogue_position()
 
 
@@ -516,6 +542,13 @@ func _create_key_badge(text: String, handwritten_font: Font) -> PanelContainer:
 	badge.add_child(label)
 
 	return badge
+
+
+func _on_next_button_pressed() -> void:
+	if _is_typing:
+		_skip_typing_requested = true
+	elif _waiting_for_advance:
+		_advance_requested = true
 
 
 func _create_handwritten_font() -> Font:
@@ -717,10 +750,10 @@ func _run_return_with_torch_sequence() -> void:
 	await _say_and_wait("Princess", "Now, let me introduce you to the power of light.")
 	await _say_and_wait("Princess", "This torch will help you see in the dark.")
 	await _say_and_wait("Princess", "Hold the torch close to illuminate your path.")
-	var tr := _safe_timer(return_teleport_delay_seconds)
-	if not tr:
+	var trn := _safe_timer(return_teleport_delay_seconds)
+	if not trn:
 		return
-	await tr.timeout
+	await trn.timeout
 	await _teleport_to_spawn_point()
 
 	# Keep existing lamp unlock progression.

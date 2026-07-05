@@ -56,7 +56,7 @@ var _loaded_from_save := false
 var _pause_layer: CanvasLayer = null
 var _pause_panel: PanelContainer = null
 var _pause_help_panel: PanelContainer = null
-var _pause_help_label: Label = null
+var _pause_help_label: RichTextLabel = null
 var _pause_help_opened_from_gameplay := false
 var _pause_settings_dialog: AcceptDialog = null
 var _pause_keybind_buttons: Dictionary = {}
@@ -670,38 +670,94 @@ func _build_pause_help_panel() -> void:
 	if _pause_layer == null:
 		return
 	_pause_help_panel = PanelContainer.new()
-	_pause_help_panel.custom_minimum_size = Vector2(420, 280)
+	_pause_help_panel.custom_minimum_size = Vector2(420, 300)
 	_pause_help_panel.anchor_left = 0.5
 	_pause_help_panel.anchor_top = 0.5
 	_pause_help_panel.anchor_right = 0.5
 	_pause_help_panel.anchor_bottom = 0.5
-	_pause_help_panel.position = Vector2(-210, -140)
+	_pause_help_panel.position = Vector2(-210, -150)
 	_pause_help_panel.visible = false
 	var help_style := StyleBoxFlat.new()
-	help_style.bg_color = Color(0.05, 0.05, 0.08, 1.0)
-	help_style.border_color = Color(0.95, 0.88, 0.42, 1.0)
-	help_style.border_width_left = 1
-	help_style.border_width_top = 1
-	help_style.border_width_right = 1
-	help_style.border_width_bottom = 1
+	help_style.bg_color = Color(0.04, 0.04, 0.07, 0.92)
+	help_style.border_color = Color(0.78, 0.60, 0.24, 0.7)
+	help_style.border_width_left = 2
+	help_style.border_width_top = 2
+	help_style.border_width_right = 2
+	help_style.border_width_bottom = 2
+	help_style.corner_radius_top_left = 8
+	help_style.corner_radius_top_right = 8
+	help_style.corner_radius_bottom_left = 8
+	help_style.corner_radius_bottom_right = 8
+	help_style.shadow_color = Color(0.0, 0.0, 0.0, 0.4)
+	help_style.shadow_size = 6
+	help_style.shadow_offset = Vector2(2, 2)
 	var help_theme := Theme.new()
 	help_theme.set_stylebox("panel", "PanelContainer", help_style)
 	_pause_help_panel.theme = help_theme
 	_pause_layer.add_child(_pause_help_panel)
 
-	_pause_help_label = Label.new()
-	_pause_help_label.anchor_left = 0.0
-	_pause_help_label.anchor_top = 0.0
-	_pause_help_label.anchor_right = 1.0
-	_pause_help_label.anchor_bottom = 1.0
-	_pause_help_label.offset_left = 12
-	_pause_help_label.offset_top = 12
-	_pause_help_label.offset_right = -12
-	_pause_help_label.offset_bottom = -12
-	_pause_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_pause_help_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
-	_pause_help_panel.add_child(_pause_help_label)
+	# Close button top right
+	var close_btn := Button.new()
+	close_btn.text = "X"
+	close_btn.size = Vector2(20, 20)
+	close_btn.position = Vector2(396, 6)
+	close_btn.add_theme_font_size_override("font_size", 12)
+	close_btn.pressed.connect(_on_pause_help_close)
+	_pause_help_panel.add_child(close_btn)
+
+	# Content container
+	var content := VBoxContainer.new()
+	content.anchor_left = 0.0
+	content.anchor_top = 0.0
+	content.anchor_right = 1.0
+	content.anchor_bottom = 1.0
+	content.offset_left = 16
+	content.offset_top = 16
+	content.offset_right = -16
+	content.offset_bottom = -16
+	content.add_theme_constant_override("separation", 6)
+	_pause_help_panel.add_child(content)
+
+	# Title
+	var title := Label.new()
+	title.text = "KEYBINDING HELP"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_color_override("font_color", Color(0.95, 0.88, 0.42, 1.0))
+	content.add_child(title)
+
+	# Separator
+	var sep := HSeparator.new()
+	sep.add_theme_color_override("separator", Color(0.78, 0.60, 0.24, 0.4))
+	content.add_child(sep)
+
+	_pause_help_label = RichTextLabel.new()
+	_pause_help_label.bbcode_enabled = true
+	_pause_help_label.fit_content = false
+	_pause_help_label.scroll_active = false
+	_pause_help_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_pause_help_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_pause_help_label.add_theme_font_size_override("normal_font_size", 14)
+	_pause_help_label.add_theme_color_override("default_color", Color(0.88, 0.85, 0.78, 1.0))
+	content.add_child(_pause_help_label)
+
+	# Hint at bottom
+	var hint := Label.new()
+	hint.text = "Press H or X to close"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 11)
+	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 0.7))
+	content.add_child(hint)
+
 	_refresh_pause_help_text()
+
+
+func _on_pause_help_close() -> void:
+	if _pause_help_panel != null:
+		_pause_help_panel.visible = false
+	if _pause_help_opened_from_gameplay:
+		_pause_help_opened_from_gameplay = false
+		_resume_game()
 
 
 func _show_pause_help(from_gameplay := false) -> void:
@@ -732,10 +788,9 @@ func _handle_pause_help_hotkey() -> void:
 func _refresh_pause_help_text() -> void:
 	if _pause_help_label == null:
 		return
-	var lines := ["Keybinding Help"]
+	var lines := []
 	for action_name in PAUSE_KEY_ACTIONS.keys():
-		lines.append("%s : %s" % [PAUSE_KEY_ACTIONS[action_name], _pause_describe_action_binding(String(action_name))])
-	lines.append("Press H to hide/show this help")
+		lines.append("[color=#D9CC6B]%s[/color] : %s" % [PAUSE_KEY_ACTIONS[action_name], _pause_describe_action_binding(String(action_name))])
 	_pause_help_label.text = "\n".join(lines)
 
 
@@ -1781,12 +1836,15 @@ func _create_death_overlay() -> void:
 	_death_overlay_you_died_label.anchor_top = 0.5
 	_death_overlay_you_died_label.anchor_right = 0.5
 	_death_overlay_you_died_label.anchor_bottom = 0.5
-	_death_overlay_you_died_label.position = Vector2(-150, -42)
+	_death_overlay_you_died_label.position = Vector2(-150, -50)
 	_death_overlay_you_died_label.size = Vector2(300, 100)
 	_death_overlay_you_died_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_death_overlay_you_died_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_death_overlay_you_died_label.add_theme_font_size_override("font_size", 56)
-	_death_overlay_you_died_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2, 1.0))
+	_death_overlay_you_died_label.add_theme_font_size_override("font_size", 58)
+	_death_overlay_you_died_label.add_theme_color_override("font_color", Color(0.85, 0.12, 0.12, 1.0))
+	_death_overlay_you_died_label.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
+	_death_overlay_you_died_label.add_theme_constant_override("shadow_offset_x", 2)
+	_death_overlay_you_died_label.add_theme_constant_override("shadow_offset_y", 2)
 	_death_overlay_you_died_label.text = "YOU DIED"
 	_death_overlay_you_died_label.visible = false
 	_death_overlay_layer.add_child(_death_overlay_you_died_label)
@@ -1797,40 +1855,58 @@ func _create_death_overlay() -> void:
 	_death_overlay_respawn_button.anchor_top = 0.5
 	_death_overlay_respawn_button.anchor_right = 0.5
 	_death_overlay_respawn_button.anchor_bottom = 0.5
-	_death_overlay_respawn_button.position = Vector2(-80, 0)
+	_death_overlay_respawn_button.position = Vector2(-80, 20)
 	_death_overlay_respawn_button.size = Vector2(160, 50)
-	_death_overlay_respawn_button.text = "Respawn"
+	_death_overlay_respawn_button.text = "Try Again"
 	_death_overlay_respawn_button.visible = false
-	_death_overlay_respawn_button.process_mode = Node.PROCESS_MODE_ALWAYS  # Works even when paused
+	_death_overlay_respawn_button.process_mode = Node.PROCESS_MODE_ALWAYS
 	_death_overlay_respawn_button.pressed.connect(_on_respawn_button_pressed)
 	_death_overlay_layer.add_child(_death_overlay_respawn_button)
 
 	_death_overlay_logo = Label.new()
 	_death_overlay_logo.anchor_left = 0.5
-	_death_overlay_logo.anchor_top = 0.38
+	_death_overlay_logo.anchor_top = 0.35
 	_death_overlay_logo.anchor_right = 0.5
-	_death_overlay_logo.anchor_bottom = 0.38
-	_death_overlay_logo.position = Vector2(-260, 0)
-	_death_overlay_logo.size = Vector2(520, 80)
+	_death_overlay_logo.anchor_bottom = 0.35
+	_death_overlay_logo.position = Vector2(-200, 0)
+	_death_overlay_logo.size = Vector2(400, 60)
 	_death_overlay_logo.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_death_overlay_logo.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_death_overlay_logo.add_theme_font_size_override("font_size", 42)
-	_death_overlay_logo.text = "IN SEARCH OF THE RING"
+	_death_overlay_logo.add_theme_font_size_override("font_size", 38)
+	_death_overlay_logo.add_theme_color_override("font_color", Color(0.85, 0.78, 0.55, 1.0))
+	_death_overlay_logo.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.9))
+	_death_overlay_logo.add_theme_constant_override("shadow_offset_x", 2)
+	_death_overlay_logo.add_theme_constant_override("shadow_offset_y", 2)
+	_death_overlay_logo.text = "The Royal Guard"
 	_death_overlay_logo.visible = false
 	_death_overlay_layer.add_child(_death_overlay_logo)
 
 	_death_overlay_loading = ProgressBar.new()
 	_death_overlay_loading.anchor_left = 0.5
-	_death_overlay_loading.anchor_top = 0.63
+	_death_overlay_loading.anchor_top = 0.5
 	_death_overlay_loading.anchor_right = 0.5
-	_death_overlay_loading.anchor_bottom = 0.63
-	_death_overlay_loading.position = Vector2(-220, 0)
-	_death_overlay_loading.size = Vector2(440, 24)
+	_death_overlay_loading.anchor_bottom = 0.5
+	_death_overlay_loading.position = Vector2(-150, 40)
+	_death_overlay_loading.size = Vector2(300, 6)
 	_death_overlay_loading.min_value = 0.0
 	_death_overlay_loading.max_value = 100.0
 	_death_overlay_loading.value = 0.0
 	_death_overlay_loading.show_percentage = false
 	_death_overlay_loading.visible = false
+	var bar_style := StyleBoxFlat.new()
+	bar_style.bg_color = Color(0.2, 0.18, 0.12, 0.6)
+	bar_style.corner_radius_top_left = 3
+	bar_style.corner_radius_top_right = 3
+	bar_style.corner_radius_bottom_left = 3
+	bar_style.corner_radius_bottom_right = 3
+	_death_overlay_loading.add_theme_stylebox_override("background", bar_style)
+	var fill_style := StyleBoxFlat.new()
+	fill_style.bg_color = Color(0.85, 0.78, 0.55, 0.9)
+	fill_style.corner_radius_top_left = 3
+	fill_style.corner_radius_top_right = 3
+	fill_style.corner_radius_bottom_left = 3
+	fill_style.corner_radius_bottom_right = 3
+	_death_overlay_loading.add_theme_stylebox_override("fill", fill_style)
 	_death_overlay_layer.add_child(_death_overlay_loading)
 
 
@@ -1871,21 +1947,36 @@ func _run_death_sequence() -> void:
 	_death_overlay_loading.visible = false
 	_death_overlay_respawn_button.visible = false
 	_death_overlay_fade.color = Color(0.0, 0.0, 0.0, 0.0)
+	_death_overlay_you_died_label.visible = false
 
-	# Show centered death text first, then fade after 2 seconds.
-	_death_overlay_you_died_label.visible = true
-	if not is_inside_tree():
-		return
-	var twd2 := get_tree()
-	if not twd2:
-		return
-	await twd2.create_timer(2.0, true).timeout
+	# Cinematic fade-in: dark red tint then YOU DIED text
+	if is_inside_tree():
+		var twd2 := get_tree()
+		if twd2:
+			# Dark red tint fades in first
+			var tint_tween := create_tween()
+			tint_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+			tint_tween.set_trans(Tween.TRANS_CUBIC)
+			tint_tween.tween_property(_death_overlay_fade, "color", Color(0.12, 0.0, 0.0, 0.75), 0.8)
+			await tint_tween.finished
 
-	var fade_tween := create_tween()
-	fade_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
-	fade_tween.set_trans(Tween.TRANS_LINEAR)
-	fade_tween.tween_property(_death_overlay_fade, "color", Color(0.0, 0.0, 0.0, 1.0), death_black_fade_seconds)
-	await fade_tween.finished
+			# Show YOU DIED text
+			_death_overlay_you_died_label.visible = true
+			_death_overlay_you_died_label.modulate.a = 0.0
+			var text_tween := create_tween()
+			text_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+			text_tween.tween_property(_death_overlay_you_died_label, "modulate:a", 1.0, 0.5).set_ease(Tween.EASE_OUT)
+			await text_tween.finished
+
+			# Hold for a moment
+			await twd2.create_timer(1.5, true).timeout
+
+			# Fade to full black
+			var fade_tween := create_tween()
+			fade_tween.set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+			fade_tween.set_trans(Tween.TRANS_LINEAR)
+			fade_tween.tween_property(_death_overlay_fade, "color", Color(0.0, 0.0, 0.0, 1.0), death_black_fade_seconds)
+			await fade_tween.finished
 	
 	# Resume game for loading sequence
 	get_tree().paused = false

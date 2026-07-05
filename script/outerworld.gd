@@ -48,12 +48,13 @@ var _quest_label: Label = null
 var _tutorial_attack_label: Label = null
 var _tutorial_potions_label: Label = null
 var _tutorial_sprint_label: Label = null
+var _tutorial_panel: Panel = null
 var _energy_bar: ProgressBar = null
 var _strength_bar: ProgressBar = null
 var _pause_layer: CanvasLayer = null
 var _pause_panel: PanelContainer = null
 var _pause_help_panel: PanelContainer = null
-var _pause_help_label: Label = null
+var _pause_help_label: RichTextLabel = null
 var _pause_help_opened_from_gameplay := false
 var _pause_settings_dialog: AcceptDialog = null
 var _pause_keybind_buttons: Dictionary = {}
@@ -340,6 +341,15 @@ func _create_health_hud() -> void:
 	t_style.corner_radius_bottom_right = 6
 	tutorial_bg.add_theme_stylebox_override("panel", t_style)
 	hud_layer.add_child(tutorial_bg)
+	_tutorial_panel = tutorial_bg
+
+	var close_btn := Button.new()
+	close_btn.text = "X"
+	close_btn.size = Vector2(18, 18)
+	close_btn.position = Vector2(420, 2)
+	close_btn.add_theme_font_size_override("font_size", 11)
+	close_btn.pressed.connect(_close_tutorial_panel)
+	tutorial_bg.add_child(close_btn)
 
 	var tutorial_font := load("res://fonts/Retro Gaming.ttf") as Font
 
@@ -511,6 +521,11 @@ func _refresh_tutorial_labels() -> void:
 		_tutorial_sprint_label.text = "Hold " + _pause_describe_action_binding("sprint") + " to sprint (uses Energy)"
 
 
+func _close_tutorial_panel() -> void:
+	if _tutorial_panel != null:
+		_tutorial_panel.visible = false
+
+
 func _update_resource_bars() -> void:
 	if _player_node == null:
 		return
@@ -643,28 +658,46 @@ func _create_door_gate_ui() -> void:
 
 		_door_loading_title = Label.new()
 		_door_loading_title.anchor_left = 0.5
-		_door_loading_title.anchor_top = 0.40
+		_door_loading_title.anchor_top = 0.35
 		_door_loading_title.anchor_right = 0.5
-		_door_loading_title.anchor_bottom = 0.40
-		_door_loading_title.position = Vector2(-260, 0)
-		_door_loading_title.size = Vector2(520, 80)
+		_door_loading_title.anchor_bottom = 0.35
+		_door_loading_title.position = Vector2(-200, 0)
+		_door_loading_title.size = Vector2(400, 60)
 		_door_loading_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		_door_loading_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		_door_loading_title.add_theme_font_size_override("font_size", 42)
-		_door_loading_title.text = "IN SEARCH OF THE RING"
+		_door_loading_title.add_theme_font_size_override("font_size", 38)
+		_door_loading_title.add_theme_color_override("font_color", Color(0.85, 0.78, 0.55, 1.0))
+		_door_loading_title.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.9))
+		_door_loading_title.add_theme_constant_override("shadow_offset_x", 2)
+		_door_loading_title.add_theme_constant_override("shadow_offset_y", 2)
+		_door_loading_title.text = "The Royal Guard"
 		_door_loading_layer.add_child(_door_loading_title)
 
 		_door_loading_bar = ProgressBar.new()
 		_door_loading_bar.anchor_left = 0.5
-		_door_loading_bar.anchor_top = 0.62
+		_door_loading_bar.anchor_top = 0.5
 		_door_loading_bar.anchor_right = 0.5
-		_door_loading_bar.anchor_bottom = 0.62
-		_door_loading_bar.position = Vector2(-220, 0)
-		_door_loading_bar.size = Vector2(440, 24)
+		_door_loading_bar.anchor_bottom = 0.5
+		_door_loading_bar.position = Vector2(-150, 40)
+		_door_loading_bar.size = Vector2(300, 6)
 		_door_loading_bar.min_value = 0.0
 		_door_loading_bar.max_value = 100.0
 		_door_loading_bar.value = 0.0
 		_door_loading_bar.show_percentage = false
+		var bar_bg_style := StyleBoxFlat.new()
+		bar_bg_style.bg_color = Color(0.2, 0.18, 0.12, 0.6)
+		bar_bg_style.corner_radius_top_left = 3
+		bar_bg_style.corner_radius_top_right = 3
+		bar_bg_style.corner_radius_bottom_left = 3
+		bar_bg_style.corner_radius_bottom_right = 3
+		_door_loading_bar.add_theme_stylebox_override("background", bar_bg_style)
+		var bar_fill_style := StyleBoxFlat.new()
+		bar_fill_style.bg_color = Color(0.85, 0.78, 0.55, 0.9)
+		bar_fill_style.corner_radius_top_left = 3
+		bar_fill_style.corner_radius_top_right = 3
+		bar_fill_style.corner_radius_bottom_left = 3
+		bar_fill_style.corner_radius_bottom_right = 3
+		_door_loading_bar.add_theme_stylebox_override("fill", bar_fill_style)
 		_door_loading_layer.add_child(_door_loading_bar)
 
 
@@ -980,38 +1013,94 @@ func _build_pause_help_panel() -> void:
 	if _pause_layer == null:
 		return
 	_pause_help_panel = PanelContainer.new()
-	_pause_help_panel.custom_minimum_size = Vector2(420, 280)
+	_pause_help_panel.custom_minimum_size = Vector2(420, 300)
 	_pause_help_panel.anchor_left = 0.5
 	_pause_help_panel.anchor_top = 0.5
 	_pause_help_panel.anchor_right = 0.5
 	_pause_help_panel.anchor_bottom = 0.5
-	_pause_help_panel.position = Vector2(-210, -140)
+	_pause_help_panel.position = Vector2(-210, -150)
 	_pause_help_panel.visible = false
 	var help_style := StyleBoxFlat.new()
-	help_style.bg_color = Color(0.05, 0.05, 0.08, 1.0)
-	help_style.border_color = Color(0.95, 0.88, 0.42, 1.0)
-	help_style.border_width_left = 1
-	help_style.border_width_top = 1
-	help_style.border_width_right = 1
-	help_style.border_width_bottom = 1
+	help_style.bg_color = Color(0.04, 0.04, 0.07, 0.92)
+	help_style.border_color = Color(0.78, 0.60, 0.24, 0.7)
+	help_style.border_width_left = 2
+	help_style.border_width_top = 2
+	help_style.border_width_right = 2
+	help_style.border_width_bottom = 2
+	help_style.corner_radius_top_left = 8
+	help_style.corner_radius_top_right = 8
+	help_style.corner_radius_bottom_left = 8
+	help_style.corner_radius_bottom_right = 8
+	help_style.shadow_color = Color(0.0, 0.0, 0.0, 0.4)
+	help_style.shadow_size = 6
+	help_style.shadow_offset = Vector2(2, 2)
 	var help_theme := Theme.new()
 	help_theme.set_stylebox("panel", "PanelContainer", help_style)
 	_pause_help_panel.theme = help_theme
 	_pause_layer.add_child(_pause_help_panel)
 
-	_pause_help_label = Label.new()
-	_pause_help_label.anchor_left = 0.0
-	_pause_help_label.anchor_top = 0.0
-	_pause_help_label.anchor_right = 1.0
-	_pause_help_label.anchor_bottom = 1.0
-	_pause_help_label.offset_left = 12
-	_pause_help_label.offset_top = 12
-	_pause_help_label.offset_right = -12
-	_pause_help_label.offset_bottom = -12
-	_pause_help_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_pause_help_label.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0, 1.0))
-	_pause_help_panel.add_child(_pause_help_label)
+	# Close button top right
+	var close_btn := Button.new()
+	close_btn.text = "X"
+	close_btn.size = Vector2(20, 20)
+	close_btn.position = Vector2(396, 6)
+	close_btn.add_theme_font_size_override("font_size", 12)
+	close_btn.pressed.connect(_on_pause_help_close)
+	_pause_help_panel.add_child(close_btn)
+
+	# Content container
+	var content := VBoxContainer.new()
+	content.anchor_left = 0.0
+	content.anchor_top = 0.0
+	content.anchor_right = 1.0
+	content.anchor_bottom = 1.0
+	content.offset_left = 16
+	content.offset_top = 16
+	content.offset_right = -16
+	content.offset_bottom = -16
+	content.add_theme_constant_override("separation", 6)
+	_pause_help_panel.add_child(content)
+
+	# Title
+	var title := Label.new()
+	title.text = "KEYBINDING HELP"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 18)
+	title.add_theme_color_override("font_color", Color(0.95, 0.88, 0.42, 1.0))
+	content.add_child(title)
+
+	# Separator
+	var sep := HSeparator.new()
+	sep.add_theme_color_override("separator", Color(0.78, 0.60, 0.24, 0.4))
+	content.add_child(sep)
+
+	_pause_help_label = RichTextLabel.new()
+	_pause_help_label.bbcode_enabled = true
+	_pause_help_label.fit_content = false
+	_pause_help_label.scroll_active = false
+	_pause_help_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_pause_help_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_pause_help_label.add_theme_font_size_override("normal_font_size", 14)
+	_pause_help_label.add_theme_color_override("default_color", Color(0.88, 0.85, 0.78, 1.0))
+	content.add_child(_pause_help_label)
+
+	# Hint at bottom
+	var hint := Label.new()
+	hint.text = "Press H or X to close"
+	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.add_theme_font_size_override("font_size", 11)
+	hint.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 0.7))
+	content.add_child(hint)
+
 	_refresh_pause_help_text()
+
+
+func _on_pause_help_close() -> void:
+	if _pause_help_panel != null:
+		_pause_help_panel.visible = false
+	if _pause_help_opened_from_gameplay:
+		_pause_help_opened_from_gameplay = false
+		_resume_game()
 
 
 func _show_pause_help(from_gameplay := false) -> void:
@@ -1042,10 +1131,9 @@ func _handle_pause_help_hotkey() -> void:
 func _refresh_pause_help_text() -> void:
 	if _pause_help_label == null:
 		return
-	var lines := ["Keybinding Help"]
+	var lines := []
 	for action_name in PAUSE_KEY_ACTIONS.keys():
-		lines.append("%s : %s" % [PAUSE_KEY_ACTIONS[action_name], _pause_describe_action_binding(String(action_name))])
-	lines.append("Press H to hide/show this help")
+		lines.append("[color=#D9CC6B]%s[/color] : %s" % [PAUSE_KEY_ACTIONS[action_name], _pause_describe_action_binding(String(action_name))])
 	_pause_help_label.text = "\n".join(lines)
 
 

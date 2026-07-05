@@ -20,6 +20,7 @@ var _quest_label: Label = null
 var _tutorial_attack_label: Label = null
 var _tutorial_potions_label: Label = null
 var _tutorial_sprint_label: Label = null
+var _tutorial_panel: Panel = null
 var _respawn_pending := false
 var _ending_started := false
 var _death_screen_visible := false
@@ -307,6 +308,15 @@ func _setup_life_ui() -> void:
 	tstyle.border_color = Color(0.85, 0.72, 0.22, 0.8)
 	tutorial_bg.add_theme_stylebox_override("panel", tstyle)
 	hud.add_child(tutorial_bg)
+	_tutorial_panel = tutorial_bg
+
+	var close_btn := Button.new()
+	close_btn.text = "X"
+	close_btn.size = Vector2(18, 18)
+	close_btn.position = Vector2(500, 2)
+	close_btn.add_theme_font_size_override("font_size", 11)
+	close_btn.pressed.connect(_close_tutorial_panel)
+	tutorial_bg.add_child(close_btn)
 
 	_tutorial_attack_label = Label.new()
 	_tutorial_attack_label.anchor_left = 0.5
@@ -357,6 +367,11 @@ func _refresh_tutorial_text() -> void:
 		_tutorial_potions_label.text = "Potions: " + health_key + " Regen | " + strength_key + " Strength | " + energy_key + " Energy"
 	if _tutorial_sprint_label:
 		_tutorial_sprint_label.text = "Hold " + sprint_key + " to sprint (uses Energy)"
+
+
+func _close_tutorial_panel() -> void:
+	if _tutorial_panel != null:
+		_tutorial_panel.visible = false
 
 
 func _describe_action_binding(action_name: String) -> String:
@@ -642,11 +657,21 @@ func _setup_death_ui() -> void:
 		panel.offset_right = 0.0
 		panel.offset_bottom = 0.0
 		var panel_style := StyleBoxFlat.new()
-		panel_style.bg_color = Color(0.0, 0.0, 0.0, 0.78)
+		panel_style.bg_color = Color(0.05, 0.0, 0.0, 0.0)
 		panel.add_theme_stylebox_override("panel", panel_style)
 		layer.add_child(panel)
 
+		var vignette := ColorRect.new()
+		vignette.name = "Vignette"
+		vignette.anchor_left = 0.0
+		vignette.anchor_top = 0.0
+		vignette.anchor_right = 1.0
+		vignette.anchor_bottom = 1.0
+		vignette.color = Color(0.15, 0.0, 0.0, 0.0)
+		panel.add_child(vignette)
+
 		var content := VBoxContainer.new()
+		content.name = "Content"
 		content.anchor_left = 0.5
 		content.anchor_top = 0.5
 		content.anchor_right = 0.5
@@ -657,20 +682,35 @@ func _setup_death_ui() -> void:
 		content.offset_bottom = 110.0
 		content.alignment = BoxContainer.ALIGNMENT_CENTER
 		content.add_theme_constant_override("separation", 18)
+		content.modulate.a = 0.0
 		panel.add_child(content)
 
 		var title := Label.new()
 		title.text = "YOU DIED"
 		title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		title.add_theme_font_size_override("font_size", 48)
-		title.add_theme_color_override("font_color", Color(0.92, 0.2, 0.2, 1.0))
+		title.add_theme_font_size_override("font_size", 58)
+		title.add_theme_color_override("font_color", Color(0.85, 0.12, 0.12, 1.0))
+		title.add_theme_color_override("font_shadow_color", Color(0.0, 0.0, 0.0, 0.8))
+		title.add_theme_constant_override("shadow_offset_x", 2)
+		title.add_theme_constant_override("shadow_offset_y", 2)
 		content.add_child(title)
+
+		var subtitle := Label.new()
+		subtitle.text = "The battle is lost..."
+		subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		subtitle.add_theme_font_size_override("font_size", 16)
+		subtitle.add_theme_color_override("font_color", Color(0.7, 0.6, 0.55, 0.8))
+		content.add_child(subtitle)
+
+		var spacer := Control.new()
+		spacer.custom_minimum_size = Vector2(0, 10)
+		content.add_child(spacer)
 
 		var button := Button.new()
 		button.name = "RespawnButton"
-		button.text = "Respawn"
+		button.text = "Try Again"
 		button.custom_minimum_size = Vector2(220, 52)
-		button.add_theme_font_size_override("font_size", 24)
+		button.add_theme_font_size_override("font_size", 22)
 		button.focus_mode = Control.FOCUS_ALL
 		button.mouse_filter = Control.MOUSE_FILTER_STOP
 		button.pressed.connect(_on_death_respawn_pressed)
@@ -700,6 +740,25 @@ func _show_death_screen() -> void:
 
 	if _death_layer != null:
 		_death_layer.visible = true
+
+		var panel := _death_layer.get_node_or_null("DeathPanel") as PanelContainer
+		if panel != null:
+			var panel_style := StyleBoxFlat.new()
+			panel_style.bg_color = Color(0.05, 0.0, 0.0, 0.0)
+			panel.add_theme_stylebox_override("panel", panel_style)
+
+			var tween := panel.create_tween()
+			tween.set_parallel(true)
+			tween.tween_property(panel_style, "bg_color", Color(0.05, 0.0, 0.0, 0.82), 1.2).set_ease(Tween.EASE_OUT)
+
+			var vignette := panel.get_node_or_null("Vignette") as ColorRect
+			if vignette != null:
+				tween.tween_property(vignette, "color", Color(0.18, 0.02, 0.02, 0.35), 1.2).set_ease(Tween.EASE_OUT)
+
+			var content := panel.get_node_or_null("Content") as VBoxContainer
+			if content != null:
+				tween.tween_property(content, "modulate:a", 1.0, 0.8).set_delay(0.5).set_ease(Tween.EASE_OUT)
+
 	if _death_respawn_button != null:
 		_death_respawn_button.disabled = false
 		_death_respawn_button.grab_focus()
