@@ -377,10 +377,6 @@ func _perform_attack() -> void:
 		return
 
 	_spawn_shockwave(player.global_position)
-	if player.has_method("take_damage"):
-		player.call("take_damage", attack_damage)
-	if player.has_method("apply_combat_knockback"):
-		player.call("apply_combat_knockback", global_position, player_knockback_force)
 
 
 func _spawn_shockwave(shockwave_target: Vector2) -> void:
@@ -390,23 +386,70 @@ func _spawn_shockwave(shockwave_target: Vector2) -> void:
 	if fx_root == null:
 		fx_root = get_tree().root
 
+	var distance_to_target := global_position.distance_to(shockwave_target)
+	var travel_time := 0.7
+
 	var pulse := Polygon2D.new()
-	pulse.polygon = PackedVector2Array([
-		Vector2(0.0, -10.0),
-		Vector2(16.0, 0.0),
-		Vector2(0.0, 10.0),
-		Vector2(-16.0, 0.0)
-	])
-	pulse.color = Color(0.75, 0.35, 0.95, 0.95)
+	var points := PackedVector2Array()
+	var segments := 16
+	for i in range(segments):
+		var angle := (float(i) / float(segments)) * TAU
+		points.append(Vector2(cos(angle) * 6.0, sin(angle) * 6.0))
+	pulse.polygon = points
+	pulse.color = Color(0.85, 0.4, 1.0, 1.0)
 	pulse.global_position = global_position
 	fx_root.add_child(pulse)
 
+	var trail := Line2D.new()
+	trail.width = 3.0
+	trail.default_color = Color(0.75, 0.35, 0.95, 0.6)
+	trail.points = PackedVector2Array([global_position, global_position])
+	fx_root.add_child(trail)
+
+	var target_ref: WeakRef = weakref(player) if player != null else null
+	var start_pos := global_position
+	var captured_damage := attack_damage
+	var captured_knockback := player_knockback_force
+
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(pulse, "global_position", shockwave_target, 0.25)
-	tween.tween_property(pulse, "scale", Vector2(2.4, 2.4), 0.25).from(Vector2.ONE)
-	tween.tween_property(pulse, "modulate:a", 0.0, 0.25)
-	tween.finished.connect(Helpers.queue_free_node.bind(weakref(pulse)))
+	tween.tween_property(pulse, "global_position", shockwave_target, travel_time).set_ease(Tween.EASE_IN).set_trans(Tween.TRANS_SINE)
+	tween.tween_property(pulse, "scale", Vector2(1.2, 1.2), travel_time).from(Vector2.ONE)
+	tween.tween_property(trail, "modulate:a", 0.0, travel_time)
+	tween.chain().tween_callback(func() -> void:
+		trail.queue_free()
+		pulse.polygon = PackedVector2Array()
+		var explosion_points := PackedVector2Array()
+		var explosion_segments := 24
+		for i in range(explosion_segments):
+			var angle := (float(i) / float(explosion_segments)) * TAU
+			explosion_points.append(Vector2(cos(angle) * 8.0, sin(angle) * 8.0))
+		pulse.polygon = explosion_points
+		pulse.color = Color(1.0, 0.6, 1.0, 1.0)
+		pulse.scale = Vector2(1.0, 1.0)
+		var explode_tween := create_tween()
+		explode_tween.set_parallel(true)
+		explode_tween.tween_property(pulse, "scale", Vector2(6.0, 6.0), 0.3).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
+		explode_tween.tween_property(pulse, "modulate:a", 0.0, 0.35).set_delay(0.1)
+		explode_tween.tween_callback(_on_shockwave_hit.bind(target_ref, shockwave_target, distance_to_target, start_pos, captured_damage, captured_knockback, pulse)).set_delay(0.05)
+	)
+
+
+func _on_shockwave_hit(target_ref: WeakRef, shockwave_target: Vector2, distance_to_target: float, start_pos: Vector2, captured_damage: int, captured_knockback: float, pulse: Polygon2D) -> void:
+	if target_ref != null:
+		var p: Object = target_ref.get_ref()
+		if p != null and is_instance_valid(p):
+			var player_dist: float = (p as Node2D).global_position.distance_to(shockwave_target)
+			if player_dist <= 60.0:
+				var dist_ratio := clampf(distance_to_target / attack_range, 0.0, 1.0)
+				var scaled_damage := int(round(captured_damage * (0.3 + 0.7 * dist_ratio)))
+				var scaled_knockback := captured_knockback * (0.5 + 0.5 * dist_ratio)
+				if p.has_method("take_damage"):
+					p.call("take_damage", scaled_damage)
+				if p.has_method("apply_combat_knockback"):
+					p.call("apply_combat_knockback", start_pos, scaled_knockback)
+	if pulse != null and is_instance_valid(pulse):
+		pulse.queue_free()
 
 
 func _choose_new_wander_target() -> void:

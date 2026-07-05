@@ -10,13 +10,13 @@ enum State {
 @export var wander_radius: float = 96.0
 @export var detection_radius: float = 220.0
 @export var attack_range: float = 42.0
-@export var move_speed_min: float = 100.0
-@export var move_speed_max: float = 135.0
+@export var move_speed_min: float = 99.0
+@export var move_speed_max: float = 99.0
 @export var attack_cooldown_min: float = 0.8
 @export var attack_cooldown_max: float = 1.2
 @export var attack_damage: int = 18
 @export var attack_anim_time: float = 0.35
-@export var health: int = 100
+@export var health: int = 200
 @export var knockback_force_taken: float = 450.0
 @export var knockback_decay: float = 450.0
 @export var player_memory_time: float = 3.5
@@ -107,6 +107,8 @@ var _dead := false
 func _physics_process(delta: float) -> void:
 	if _dead or not is_inside_tree() or not is_physics_processing():
 		return
+	if not is_inside_tree() or is_queued_for_deletion():
+		return
 	var start_position := global_position
 
 	if _attack_cooldown_left > 0.0:
@@ -132,8 +134,10 @@ func _physics_process(delta: float) -> void:
 
 	velocity += _combat_knockback_velocity
 	
-	if is_inside_tree() and not is_queued_for_deletion():
-		move_and_slide()
+	if not _dead and is_inside_tree() and not is_queued_for_deletion() and is_physics_processing():
+		var space := get_world_2d()
+		if space != null and space.direct_space_state != null:
+			move_and_slide()
 	var moved_distance := global_position.distance_to(start_position)
 	_update_wander_unstuck(delta, moved_distance)
 	_handle_collision_reroute()
@@ -626,8 +630,11 @@ func take_damage(amount: int) -> void:
 	if current_health <= 0:
 		_dead = true
 		_drop_potion_loot()
+		remove_from_group("enemy")
 		set_physics_process(false)
-		queue_free()
+		set_process(false)
+		velocity = Vector2.ZERO
+		call_deferred("queue_free")
 
 
 func _drop_potion_loot() -> void:

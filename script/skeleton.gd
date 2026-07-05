@@ -8,7 +8,7 @@ func _is_player_target(body: Node) -> bool:
 signal ring_stolen
 signal requested_backup(spawn_position: Vector2)
 
-var health = 150
+var health = 120
 var current_health = health
 var _is_mini := false
 var _mini_generation := 0
@@ -785,7 +785,7 @@ func _spawn_mini_skeletons() -> void:
 		mini_sk._mini_generation = _mini_generation + 1
 		var scale_factor := pow(0.6, mini_sk._mini_generation)
 		mini_sk.scale = Vector2(scale_factor, scale_factor)
-		mini_sk.health = int(150 * scale_factor)
+		mini_sk.health = int(120 * scale_factor)
 		mini_sk.current_health = mini_sk.health
 		mini_sk.move_speed = move_speed * (1.0 + 0.2 * mini_sk._mini_generation)
 		mini_sk.rage_damage_threshold = int(rage_damage_threshold * scale_factor)

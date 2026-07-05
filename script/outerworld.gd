@@ -524,6 +524,12 @@ func _refresh_tutorial_labels() -> void:
 func _close_tutorial_panel() -> void:
 	if _tutorial_panel != null:
 		_tutorial_panel.visible = false
+	if _tutorial_attack_label != null:
+		_tutorial_attack_label.visible = false
+	if _tutorial_potions_label != null:
+		_tutorial_potions_label.visible = false
+	if _tutorial_sprint_label != null:
+		_tutorial_sprint_label.visible = false
 
 
 func _update_resource_bars() -> void:

@@ -108,8 +108,26 @@ var _torch_follower_node: Node2D = null
 var _torch_follower_anim: AnimatedSprite2D = null
 var _torch_follow_phase := 0.0
 
-var _map_pos := Vector2(-1019, -504)
-var _torch_pos := Vector2(606, -443)
+var _item_spawn_positions := [
+	Vector2(-1019, -504),
+	Vector2(606, -443),
+	Vector2(530, 530),
+	Vector2(268, 63),
+	Vector2(-248, 424),
+	Vector2(-259, -254),
+	Vector2(649, 656),
+	Vector2(1016, -242),
+	Vector2(-566, 365),
+	Vector2(-1033, 589),
+	Vector2(-600, -240),
+	Vector2(-564, -476),
+	Vector2(-73,662),
+	Vector2(-16,-443),
+	Vector2(48, -273),
+	Vector2(845,-585),
+]
+var _map_pos := Vector2.ZERO
+var _torch_pos := Vector2.ZERO
 var _interaction_radius := 72.0
 
 var _map_node: Node2D = null
@@ -134,6 +152,12 @@ func _on_skeleton_ring_stolen() -> void:
 func _ready() -> void:
 	# Keep this node processing while paused so Esc can resume from pause menu.
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	
+	# Randomize torch and map spawn positions
+	_item_spawn_positions.shuffle()
+	_torch_pos = _item_spawn_positions[0]
+	_map_pos = _item_spawn_positions[1]
+	
 	_create_pause_menu()
 	_create_intro_hud()
 	_create_death_overlay()
@@ -1778,7 +1802,7 @@ func _update_night_player_quest_trigger() -> void:
 		_night_player_quest_engaged = true
 		_set_objective_text("Survive the skeleton attack")
 		_show_system_message("Skeleton teleported you near it.", 2.0)
-		if _night_skeleton_instance.has_method("set_forced_target"):
+		if _night_skeleton_instance != null and is_instance_valid(_night_skeleton_instance) and _night_skeleton_instance.has_method("set_forced_target"):
 			_night_skeleton_instance.call("set_forced_target", _player_instance, true, true)
 		_night_quest_wait_time = 0.0
 		# Skeleton taunt and attack
@@ -1795,23 +1819,23 @@ func _update_night_player_quest_trigger() -> void:
 		if not tw12:
 			return
 		await tw12.create_timer(1.2).timeout
-		if _night_skeleton_instance.has_method("_try_attack_player"):
+		if _night_skeleton_instance != null and is_instance_valid(_night_skeleton_instance) and _night_skeleton_instance.has_method("_try_attack_player"):
 			_night_skeleton_instance.call("_try_attack_player")
 		return
 
 	# If player does not approach after 7 seconds, skeleton teleports player and taunts
-	if _night_quest_wait_time > 7.0:
+	if _night_quest_wait_time > 7.0 and _night_skeleton_instance != null and is_instance_valid(_night_skeleton_instance):
 		var skel_pos = _night_skeleton_instance.global_position
 		var offset = Vector2(40, 0)
 		_player_instance.global_position = skel_pos + offset
-		_show_system_message("Skeleton: I got the ring, and I’m leaving!", 2.0)
+		_show_system_message("Skeleton: I got the ring, and I'm leaving!", 2.0)
 		if not is_inside_tree():
 			return
 		var tw12b := get_tree()
 		if not tw12b:
 			return
 		await tw12b.create_timer(1.2).timeout
-		if _night_skeleton_instance.has_method("_try_attack_player"):
+		if _night_skeleton_instance != null and is_instance_valid(_night_skeleton_instance) and _night_skeleton_instance.has_method("_try_attack_player"):
 			_night_skeleton_instance.call("_try_attack_player")
 		_night_quest_wait_time = 0.0
 
